@@ -10,10 +10,11 @@ import {
 } from "lucide-react";
 
 import { API_BASE_URL } from "../config";
-import { BUSINESS_INFO } from "../storeInfo";
+import { BUSINESS_INFO, CATEGORIES, STORAGE_KEYS } from "../storeInfo";
+import Logo from "./Logo";
 
 const apiBase = String(API_BASE_URL || "").replace(/\/+$/, "");
-const REMEMBERED_EMAIL_KEY = "fablebelle-remembered-email";
+const REMEMBERED_EMAIL_KEY = STORAGE_KEYS.rememberedEmail;
 
 const getRememberedEmail = () => {
   try {
@@ -28,8 +29,8 @@ const getRedirect = (from) => {
     typeof from === "string"
       ? from
       : from && typeof from.pathname === "string"
-      ? `${from.pathname}${from.search || ""}${from.hash || ""}`
-      : "/";
+        ? `${from.pathname}${from.search || ""}${from.hash || ""}`
+        : "/";
 
   if (
     !candidate.startsWith("/") ||
@@ -42,6 +43,11 @@ const getRedirect = (from) => {
 
   return candidate;
 };
+
+const inputWrapClass = (hasError) =>
+  `flex min-w-0 items-center border bg-paper transition-[border-color,box-shadow] duration-300 focus-within:border-wine focus-within:shadow-[0_0_0_3px_rgba(125,48,58,0.12)] ${
+    hasError ? "border-danger" : "border-line"
+  }`;
 
 const Login = () => {
   const navigate = useNavigate();
@@ -97,9 +103,7 @@ const Login = () => {
 
     if (!formData.email.trim()) {
       nextErrors.email = "Email address is required.";
-    } else if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())
-    ) {
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       nextErrors.email = "Please enter a valid email address.";
     }
 
@@ -156,7 +160,7 @@ const Login = () => {
       if (!response.ok) {
         throw new Error(
           data.message ||
-            "Unable to sign in. Please check your details and try again."
+            "Unable to sign in. Please check your details and try again.",
         );
       }
 
@@ -173,18 +177,18 @@ const Login = () => {
       if (!mountedRef.current) return;
 
       try {
-        localStorage.setItem("fablebelle-user", JSON.stringify(data.user));
-        localStorage.setItem("fablebelle-token", data.token);
+        localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(data.user));
+        localStorage.setItem(STORAGE_KEYS.token, data.token);
       } catch {
         try {
-          localStorage.removeItem("fablebelle-user");
-          localStorage.removeItem("fablebelle-token");
+          localStorage.removeItem(STORAGE_KEYS.user);
+          localStorage.removeItem(STORAGE_KEYS.token);
         } catch {
           // Storage may be blocked by the browser.
         }
 
         throw new Error(
-          "Your browser could not save this login. Please allow site storage and try again."
+          "Your browser could not save this login. Please allow site storage and try again.",
         );
       }
 
@@ -210,7 +214,7 @@ const Login = () => {
         setServerError(
           error instanceof TypeError
             ? "Unable to connect right now. Please try again."
-            : error.message || "Unable to sign in. Please try again."
+            : error.message || "Unable to sign in. Please try again.",
         );
       }
     } finally {
@@ -225,621 +229,372 @@ const Login = () => {
   };
 
   return (
-    <main className="fblogin">
-      <style>{styles}</style>
+    <main className="min-h-dvh overflow-x-clip bg-chalk font-sans text-ink">
+      <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        {/* ============ Visual panel ============ */}
+        <aside
+          aria-hidden="true"
+          className="relative hidden overflow-hidden bg-ink lg:block"
+        >
+          <img
+            src="/hero-banner.png"
+            alt=""
+            className="absolute inset-0 size-full animate-slow-zoom object-cover opacity-80"
+          />
+          <span className="absolute inset-0 bg-gradient-to-t from-ink via-ink/30 to-ink/20" />
 
-      <div className="fblogin-wrap">
-        <nav className="fblogin-top" aria-label="Login navigation">
-          <Link to="/" className="fblogin-brand">
-            {BUSINESS_INFO.businessName}
-            <span aria-hidden="true">.</span>
-          </Link>
-
-          <Link to="/shop" className="fblogin-back">
-            <ArrowLeft size={16} aria-hidden="true" />
-            Back to shopping
-          </Link>
-        </nav>
-
-        <header className="fblogin-heading">
-          <p className="fblogin-eyebrow">Your account / Welcome back</p>
-
-          <h1>
-            Pick up where<br />
-            <span>you left off.</span>
-          </h1>
-
-          <p>
-            Sign in to your {BUSINESS_INFO.businessName} account to continue.
-          </p>
-        </header>
-
-        <section className="fblogin-panel" aria-labelledby="fblogin-title">
-          <div className="fblogin-panel-heading">
-            <h2 id="fblogin-title">Sign in</h2>
-            <span>Good to see you again.</span>
+          {/* floating 3D fabric cards */}
+          <div className="absolute inset-0 perspective-[1400px]">
+            {CATEGORIES.slice(0, 3).map((category, index) => (
+              <div
+                key={category.slug}
+                className={`absolute w-40 xl:w-48 ${
+                  index === 0
+                    ? "left-[12%] top-[16%]"
+                    : index === 1
+                      ? "right-[12%] top-[30%]"
+                      : "bottom-[30%] left-[30%]"
+                }`}
+              >
+                <div
+                  style={{ animationDelay: `${index * -3}s` }}
+                  className="animate-float-3d transform-3d"
+                >
+                  <div
+                    style={{ animationDelay: `${300 + index * 180}ms` }}
+                    className="animate-flip-up border-[6px] border-paper bg-paper shadow-[0_40px_60px_-25px_rgba(0,0,0,0.8)]"
+                  >
+                    <img
+                      src={category.image}
+                      alt=""
+                      className="aspect-[4/5] w-full object-cover"
+                    />
+                    <p className="pt-2 text-[9px] font-bold uppercase tracking-[0.18em] text-ink">
+                      Layer {category.id}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {serverError && (
-            <div className="fblogin-error-banner" role="alert">
-              {serverError}
+          <div className="absolute inset-x-10 bottom-10 text-paper xl:inset-x-14 xl:bottom-14">
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e6c4c7]">
+              {BUSINESS_INFO.businessName} / Members
+            </p>
+            <p className="mt-3 max-w-md font-serif text-[clamp(36px,3.4vw,52px)] leading-[1.02]">
+              Stay a little longer.
+              <br />
+              <em className="text-[#e6c4c7]">Make yourself at home.</em>
+            </p>
+          </div>
+        </aside>
+
+        {/* ============ Form panel ============ */}
+        <div className="flex min-w-0 flex-col px-5 sm:px-10 lg:px-[clamp(40px,6vw,96px)]">
+          <nav
+            aria-label="Login navigation"
+            className="flex min-h-[76px] items-center justify-between gap-4 border-b border-line sm:min-h-[88px]"
+          >
+            <Link to="/" aria-label={`${BUSINESS_INFO.businessName} home`}>
+              <Logo size="sm" />
+            </Link>
+
+            <Link
+              to="/shop"
+              className="group inline-flex min-h-11 shrink-0 items-center gap-2 text-[11px] font-semibold transition-colors hover:text-wine"
+            >
+              <ArrowLeft
+                size={15}
+                aria-hidden="true"
+                className="transition-transform duration-300 group-hover:-translate-x-1"
+              />
+              Back to shopping
+            </Link>
+          </nav>
+
+          <div className="flex flex-1 flex-col justify-center py-10 sm:py-14">
+            <div className="mx-auto w-full max-w-[460px]">
+              <header>
+                <p className="flex animate-rise items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-wine">
+                  <span className="h-px w-6 bg-wine" aria-hidden="true" />
+                  Your account / Welcome back
+                </p>
+
+                <h1 className="mt-5 font-serif text-[clamp(44px,5vw,68px)] leading-[0.98] tracking-[-0.03em] perspective-distant">
+                  <span className="block animate-fold-in [animation-delay:100ms]">
+                    Pick up where
+                  </span>
+                  <em className="block animate-fold-in text-wine [animation-delay:240ms]">
+                    you left off.
+                  </em>
+                </h1>
+
+                <p className="mt-4 animate-rise text-sm text-muted [animation-delay:320ms]">
+                  Sign in to your {BUSINESS_INFO.businessName} account to
+                  continue.
+                </p>
+              </header>
+
+              <section
+                aria-labelledby="login-title"
+                className="mt-9 animate-rise [animation-delay:400ms]"
+              >
+                <div className="mb-6 flex items-baseline justify-between gap-4 border-b border-ink pb-4">
+                  <h2 id="login-title" className="font-serif text-3xl">
+                    Sign in
+                  </h2>
+                  <span className="text-[11px] text-muted">
+                    Good to see you again.
+                  </span>
+                </div>
+
+                {serverError && (
+                  <div
+                    role="alert"
+                    className="mb-6 animate-flip-up break-words border border-danger/30 bg-danger/10 px-4 py-3.5 text-xs leading-relaxed text-danger"
+                  >
+                    {serverError}
+                  </div>
+                )}
+
+                {success ? (
+                  <div className="flex animate-flip-up flex-col items-center py-4 text-center">
+                    <span
+                      aria-hidden="true"
+                      className="grid size-16 animate-spin-y place-items-center rounded-full bg-wine text-paper"
+                    >
+                      <Check size={28} />
+                    </span>
+
+                    <h3 className="mt-5 font-serif text-3xl">
+                      You’re signed in.
+                    </h3>
+
+                    <p
+                      role="status"
+                      aria-live="polite"
+                      className="mb-6 mt-2 text-xs text-muted"
+                    >
+                      Login successful. Redirecting…
+                    </p>
+
+                    <Link
+                      to={redirectTo}
+                      className="flex min-h-[54px] w-full items-center justify-between gap-5 bg-ink px-5 py-4 text-[13px] font-semibold text-paper transition-colors hover:bg-wine"
+                    >
+                      Continue
+                      <ArrowUpRight size={19} aria-hidden="true" />
+                    </Link>
+                  </div>
+                ) : (
+                  <form
+                    ref={formRef}
+                    onSubmit={handleSubmit}
+                    noValidate
+                    aria-busy={loading}
+                  >
+                    <fieldset
+                      disabled={loading}
+                      className="m-0 min-w-0 border-0 p-0"
+                    >
+                      <legend className="sr-only">Login details</legend>
+
+                      <div>
+                        <label
+                          htmlFor="login-email"
+                          className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em]"
+                        >
+                          Email address
+                        </label>
+
+                        <div className={inputWrapClass(errors.email)}>
+                          <input
+                            id="login-email"
+                            name="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="you@example.com"
+                            autoComplete="username"
+                            autoCapitalize="none"
+                            spellCheck={false}
+                            required
+                            aria-invalid={Boolean(errors.email)}
+                            aria-describedby={
+                              errors.email ? "login-email-error" : undefined
+                            }
+                            className="min-h-[54px] w-full min-w-0 bg-transparent px-4 py-3.5 text-base outline-none placeholder:text-xs placeholder:text-muted"
+                          />
+                        </div>
+
+                        {errors.email && (
+                          <p
+                            id="login-email-error"
+                            className="mt-2 animate-fade-in text-[11px] text-danger"
+                          >
+                            {errors.email}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="mt-5">
+                        <label
+                          htmlFor="login-password"
+                          className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em]"
+                        >
+                          Password
+                        </label>
+
+                        <div className={inputWrapClass(errors.password)}>
+                          <input
+                            id="login-password"
+                            name="password"
+                            type={showPassword ? "text" : "password"}
+                            value={formData.password}
+                            onChange={handleChange}
+                            placeholder="Enter your password"
+                            autoComplete="current-password"
+                            autoCapitalize="none"
+                            spellCheck={false}
+                            required
+                            minLength={6}
+                            aria-invalid={Boolean(errors.password)}
+                            aria-describedby={
+                              errors.password ? "login-password-error" : undefined
+                            }
+                            className="min-h-[54px] w-full min-w-0 bg-transparent px-4 py-3.5 text-base outline-none placeholder:text-xs placeholder:text-muted"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((current) => !current)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            aria-pressed={showPassword}
+                            aria-controls="login-password"
+                            className="mr-1 grid size-11 shrink-0 place-items-center text-muted transition-colors hover:text-wine"
+                          >
+                            <span
+                              key={showPassword ? "hide" : "show"}
+                              className="animate-spin-y"
+                            >
+                              {showPassword ? (
+                                <EyeOff size={18} aria-hidden="true" />
+                              ) : (
+                                <Eye size={18} aria-hidden="true" />
+                              )}
+                            </span>
+                          </button>
+                        </div>
+
+                        {errors.password && (
+                          <p
+                            id="login-password-error"
+                            className="mt-2 animate-fade-in text-[11px] text-danger"
+                          >
+                            {errors.password}
+                          </p>
+                        )}
+                      </div>
+
+                      <label className="my-4 flex min-h-11 cursor-pointer items-center gap-3 text-xs text-muted">
+                        <input
+                          name="rememberEmail"
+                          type="checkbox"
+                          checked={formData.rememberEmail}
+                          onChange={handleChange}
+                          className="size-4 shrink-0 accent-wine"
+                        />
+                        Remember my email on this device
+                      </label>
+
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="group relative flex min-h-[56px] w-full items-center justify-between gap-5 overflow-hidden bg-wine px-5 py-4 text-[13px] font-semibold text-paper transition-colors duration-300 hover:bg-wine-dark disabled:opacity-65"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-paper/15 transition-transform duration-700 group-hover:translate-x-[420%]"
+                        />
+                        <span className="relative">
+                          {loading ? "Signing in…" : "Sign in"}
+                        </span>
+
+                        {loading ? (
+                          <Loader2
+                            size={18}
+                            className="relative animate-spin"
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <ArrowUpRight
+                            size={19}
+                            aria-hidden="true"
+                            className="relative transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                          />
+                        )}
+                      </button>
+                    </fieldset>
+                  </form>
+                )}
+
+                <div className="group mt-8 flex items-center justify-between gap-5 border border-line bg-paper p-5 transition-colors duration-300 hover:border-wine">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wine">
+                      New here?
+                    </p>
+                    <p className="mt-1 font-serif text-xl">
+                      Make yourself at home.
+                    </p>
+                  </div>
+
+                  <Link
+                    to="/signup"
+                    className="inline-flex min-h-11 shrink-0 items-center gap-2 text-xs font-bold transition-colors hover:text-wine"
+                  >
+                    Create account
+                    <ArrowUpRight
+                      size={17}
+                      aria-hidden="true"
+                      className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                    />
+                  </Link>
+                </div>
+
+                <p className="mt-5 text-center text-[11px] leading-relaxed text-muted">
+                  An account is not required to continue as a guest during
+                  checkout.
+                </p>
+              </section>
             </div>
-          )}
+          </div>
 
-          {success ? (
-            <div className="fblogin-success">
-              <span className="fblogin-success-icon" aria-hidden="true">
-                <Check size={26} />
-              </span>
+          <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-line py-5 text-[11px] text-muted">
+            <span>
+              © {new Date().getFullYear()} {BUSINESS_INFO.businessName}. All
+              rights reserved.
+            </span>
 
-              <h3>You’re signed in.</h3>
-
-              <p role="status" aria-live="polite">
-                Login successful. Redirecting…
-              </p>
-
-              <Link to={redirectTo} className="fblogin-submit">
-                Continue
-                <ArrowUpRight size={19} aria-hidden="true" />
+            <div className="flex gap-6">
+              <Link
+                to="/privacy-policy"
+                className="inline-flex min-h-11 items-center hover:text-wine"
+              >
+                Privacy
+              </Link>
+              <Link
+                to="/terms-and-conditions"
+                className="inline-flex min-h-11 items-center hover:text-wine"
+              >
+                Terms
               </Link>
             </div>
-          ) : (
-            <form
-              ref={formRef}
-              onSubmit={handleSubmit}
-              noValidate
-              aria-busy={loading}
-            >
-              <fieldset disabled={loading} className="fblogin-fieldset">
-                <legend className="fblogin-sr-only">Login details</legend>
-
-                <div className="fblogin-field">
-                  <label htmlFor="fblogin-email">Email address</label>
-
-                  <div
-                    className={`fblogin-input ${
-                      errors.email ? "has-error" : ""
-                    }`}
-                  >
-                    <input
-                      id="fblogin-email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="you@example.com"
-                      autoComplete="username"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      required
-                      aria-invalid={Boolean(errors.email)}
-                      aria-describedby={
-                        errors.email ? "fblogin-email-error" : undefined
-                      }
-                    />
-                  </div>
-
-                  {errors.email && (
-                    <p id="fblogin-email-error" className="fblogin-field-error">
-                      {errors.email}
-                    </p>
-                  )}
-                </div>
-
-                <div className="fblogin-field">
-                  <label htmlFor="fblogin-password">Password</label>
-
-                  <div
-                    className={`fblogin-input ${
-                      errors.password ? "has-error" : ""
-                    }`}
-                  >
-                    <input
-                      id="fblogin-password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="Enter your password"
-                      autoComplete="current-password"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      required
-                      minLength={6}
-                      aria-invalid={Boolean(errors.password)}
-                      aria-describedby={
-                        errors.password ? "fblogin-password-error" : undefined
-                      }
-                    />
-
-                    <button
-                      type="button"
-                      className="fblogin-visibility"
-                      onClick={() => setShowPassword((current) => !current)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      aria-pressed={showPassword}
-                      aria-controls="fblogin-password"
-                    >
-                      {showPassword ? (
-                        <EyeOff size={18} aria-hidden="true" />
-                      ) : (
-                        <Eye size={18} aria-hidden="true" />
-                      )}
-                    </button>
-                  </div>
-
-                  {errors.password && (
-                    <p
-                      id="fblogin-password-error"
-                      className="fblogin-field-error"
-                    >
-                      {errors.password}
-                    </p>
-                  )}
-                </div>
-
-                <label className="fblogin-remember">
-                  <input
-                    name="rememberEmail"
-                    type="checkbox"
-                    checked={formData.rememberEmail}
-                    onChange={handleChange}
-                  />
-                  Remember my email on this device
-                </label>
-
-                <button
-                  type="submit"
-                  className="fblogin-submit"
-                  disabled={loading}
-                >
-                  {loading ? "Signing in…" : "Sign in"}
-
-                  {loading ? (
-                    <Loader2
-                      size={18}
-                      className="fblogin-spin"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <ArrowUpRight size={19} aria-hidden="true" />
-                  )}
-                </button>
-              </fieldset>
-            </form>
-          )}
-
-          <div className="fblogin-create">
-            <div>
-              <p className="fblogin-eyebrow">New here?</p>
-              <p>Make yourself at home.</p>
-            </div>
-
-            <Link to="/signup">
-              Create account
-              <ArrowUpRight size={18} aria-hidden="true" />
-            </Link>
-          </div>
-        </section>
-
-        <p className="fblogin-guest">
-          An account is not required to continue as a guest during checkout.
-        </p>
-
-        <footer className="fblogin-footer">
-          <span>
-            © {new Date().getFullYear()} {BUSINESS_INFO.businessName}.
-            All rights reserved.
-          </span>
-
-          <div>
-            <Link to="/privacy-policy">Privacy</Link>
-            <Link to="/terms-and-conditions">Terms</Link>
-          </div>
-        </footer>
+          </footer>
+        </div>
       </div>
     </main>
   );
 };
-
-const styles = `
-  .fblogin {
-    --ink: #173f36;
-    --deep: #102e28;
-    --bone: #f5f0e6;
-    --paper: #fffdf5;
-    --brass: #a56e4f;
-    --muted: #626e67;
-    --line: rgba(23, 63, 54, .17);
-    --error: #a13832;
-
-    min-height: 100vh;
-    background: var(--bone);
-    color: var(--ink);
-    font-family: 'Onest', ui-sans-serif, system-ui, sans-serif;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .fblogin *,
-  .fblogin *::before,
-  .fblogin *::after { box-sizing: border-box; }
-
-  .fblogin a {
-    color: inherit;
-    text-decoration: none;
-    text-underline-offset: 4px;
-  }
-
-  .fblogin input,
-  .fblogin button { font: inherit; }
-
-  .fblogin button { cursor: pointer; }
-  .fblogin button:disabled { cursor: not-allowed; }
-
-  .fblogin a:focus-visible,
-  .fblogin button:focus-visible,
-  .fblogin input:focus-visible {
-    outline: 2px solid var(--brass);
-    outline-offset: 4px;
-  }
-
-  .fblogin-wrap {
-    width: min(100%, 1180px);
-    margin-inline: auto;
-    padding-inline: clamp(20px, 5vw, 64px);
-  }
-
-  .fblogin-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    min-height: 88px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fblogin-brand {
-    font-size: 24px;
-    font-weight: 600;
-    letter-spacing: -.055em;
-    overflow-wrap: anywhere;
-  }
-
-  .fblogin-brand > span { color: var(--brass); }
-
-  .fblogin-back {
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-    gap: 10px;
-    min-height: 44px;
-    font-size: 11px;
-  }
-
-  .fblogin-heading {
-    max-width: 680px;
-    margin-inline: auto;
-    padding-block: 42px 30px;
-    text-align: center;
-    animation: fbloginEnter .45s ease both;
-  }
-
-  .fblogin-eyebrow {
-    margin: 0;
-    color: var(--brass);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: .13em;
-    text-transform: uppercase;
-  }
-
-  .fblogin-heading h1 {
-    margin: 20px 0 18px;
-    font-size: clamp(42px, 5.6vw, 64px);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.06em;
-  }
-
-  .fblogin-heading h1 > span { color: var(--brass); }
-
-  .fblogin-heading > p:last-child {
-    margin: 0;
-    color: var(--muted);
-    font-size: 13px;
-  }
-
-  .fblogin-panel {
-    max-width: 560px;
-    margin-inline: auto;
-    padding: 34px;
-    border: 1px solid var(--line);
-    background: var(--paper);
-    animation: fbloginEnter .55s ease both;
-  }
-
-  .fblogin-panel-heading {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 18px;
-    padding-bottom: 22px;
-    margin-bottom: 24px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fblogin-panel-heading h2 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 500;
-    letter-spacing: -.04em;
-  }
-
-  .fblogin-panel-heading > span {
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fblogin-fieldset {
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
-  }
-
-  .fblogin-field + .fblogin-field { margin-top: 22px; }
-
-  .fblogin-field > label {
-    display: block;
-    margin-bottom: 9px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-
-  .fblogin-input {
-    display: flex;
-    align-items: center;
-    min-width: 0;
-    border: 1px solid var(--line);
-    background: #fff;
-    transition: border-color .2s ease, box-shadow .2s ease;
-  }
-
-  .fblogin-input:focus-within {
-    border-color: var(--ink);
-    box-shadow: 0 0 0 3px rgba(23, 63, 54, .05);
-  }
-
-  .fblogin-input.has-error { border-color: var(--error); }
-
-  .fblogin-input input {
-    width: 100%;
-    min-width: 0;
-    min-height: 54px;
-    padding: 14px 15px;
-    border: 0;
-    background: transparent;
-    color: var(--ink);
-    font-size: 16px;
-  }
-
-  .fblogin-input input::placeholder {
-    color: #7a817b;
-    font-size: 12px;
-  }
-
-  .fblogin-visibility {
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    margin-right: 4px;
-    border: 0;
-    background: transparent;
-    color: var(--muted);
-  }
-
-  .fblogin-visibility:hover { color: var(--ink); }
-
-  .fblogin-field-error {
-    margin: 8px 0 0;
-    color: var(--error);
-    font-size: 11px;
-    line-height: 1.7;
-  }
-
-  .fblogin-remember {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    min-height: 44px;
-    margin-block: 16px 20px;
-    color: var(--muted);
-    font-size: 11px;
-    cursor: pointer;
-  }
-
-  .fblogin-remember input {
-    flex-shrink: 0;
-    width: 17px;
-    height: 17px;
-    margin: 0;
-    accent-color: var(--ink);
-  }
-
-  .fblogin-submit {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    width: 100%;
-    min-height: 54px;
-    padding: 15px 20px;
-    border: 1px solid var(--ink);
-    background: var(--ink);
-    color: #fff !important;
-    font-size: 12px;
-    font-weight: 500;
-    transition: background .2s ease;
-  }
-
-  .fblogin-submit:hover:not(:disabled) { background: var(--deep); }
-  .fblogin-submit:disabled { opacity: .65; }
-  .fblogin-submit > svg { flex-shrink: 0; }
-
-  .fblogin-error-banner {
-    margin-bottom: 22px;
-    padding: 14px 16px;
-    border: 1px solid rgba(161, 56, 50, .25);
-    background: #fbefec;
-    color: var(--error);
-    font-size: 12px;
-    line-height: 1.8;
-    overflow-wrap: anywhere;
-  }
-
-  .fblogin-create {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    margin-top: 28px;
-    padding-top: 24px;
-    border-top: 1px solid var(--line);
-  }
-
-  .fblogin-create > div > p:last-child {
-    margin: 7px 0 0;
-    color: var(--muted);
-    font-size: 11px;
-  }
-
-  .fblogin-create > a {
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-    gap: 12px;
-    min-height: 44px;
-    font-size: 11px;
-    font-weight: 500;
-  }
-
-  .fblogin-create > a:hover { text-decoration: underline; }
-
-  .fblogin-success {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    padding-block: 10px;
-    text-align: center;
-  }
-
-  .fblogin-success-icon {
-    display: grid;
-    place-items: center;
-    width: 58px;
-    height: 58px;
-    border: 1px solid var(--line);
-    border-radius: 50%;
-    background: var(--bone);
-  }
-
-  .fblogin-success h3 {
-    margin: 20px 0 10px;
-    font-size: 28px;
-    font-weight: 500;
-    letter-spacing: -.04em;
-  }
-
-  .fblogin-success p {
-    margin: 0 0 24px;
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .fblogin-guest {
-    max-width: 440px;
-    margin: 22px auto 36px;
-    color: var(--muted);
-    text-align: center;
-    font-size: 11px;
-    line-height: 1.8;
-  }
-
-  .fblogin-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 15px 25px;
-    padding-block: 20px 28px;
-    border-top: 1px solid var(--line);
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fblogin-footer > div { display: flex; gap: 24px; }
-
-  .fblogin-footer a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-  }
-
-  .fblogin-footer a:hover { text-decoration: underline; }
-
-  .fblogin-sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .fblogin-spin { animation: fbloginSpin 1s linear infinite; }
-
-  @keyframes fbloginSpin {
-    to { transform: rotate(360deg); }
-  }
-
-  @keyframes fbloginEnter {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 600px) {
-    .fblogin-top { min-height: 76px; gap: 15px; }
-    .fblogin-brand { font-size: 21px; }
-    .fblogin-back { gap: 7px; font-size: 10px; }
-    .fblogin-heading { padding-block: 34px 26px; }
-    .fblogin-heading h1 { font-size: 44px; }
-    .fblogin-panel { padding: 26px 22px; }
-    .fblogin-guest { margin-bottom: 28px; }
-  }
-
-  @media (max-width: 380px) {
-    .fblogin-brand { font-size: 19px; }
-    .fblogin-back { font-size: 9px; }
-    .fblogin-heading h1 { font-size: 38px; }
-    .fblogin-panel { padding: 24px 18px; }
-    .fblogin-panel-heading { flex-wrap: wrap; gap: 8px; }
-    .fblogin-create { align-items: flex-start; flex-direction: column; gap: 8px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .fblogin *,
-    .fblogin *::before,
-    .fblogin *::after {
-      animation: none !important;
-      transition: none !important;
-    }
-  }
-`;
 
 export default Login;

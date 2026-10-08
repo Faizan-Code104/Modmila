@@ -2,18 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowUpRight,
-  Clock,
-  Mail,
-  MapPin,
-  Menu,
-  Phone,
   Search,
   User,
   X,
 } from "lucide-react";
 
 import { useCart } from "./CartContext";
-import storeInfo, { getFullAddress } from "../storeInfo";
+import storeInfo, { CATEGORIES } from "../storeInfo";
 
 const navigation = [
   { name: "Home", path: "/" },
@@ -23,42 +18,54 @@ const navigation = [
   { name: "Contact", path: "/contact" },
 ];
 
-const referenceLinks = [
-  { name: "FAQ", note: "Quick answers", path: "/faqs" },
-  {
-    name: "Shipping policy",
-    note: "Delivery information",
-    path: "/shipping-policy",
-  },
-  {
-    name: "Returns & refunds",
-    note: "Before you purchase",
-    path: "/return-policy",
-  },
-  {
-    name: "Privacy policy",
-    note: "Your information",
-    path: "/privacy-policy",
-  },
-  {
-    name: "Terms of use",
-    note: "Site information",
-    path: "/terms-and-conditions",
-  },
+const footerLinks = [
+  { name: "About", path: "/about" },
+  { name: "Contact", path: "/contact" },
+  { name: "Shipping", path: "/shipping-policy" },
+  { name: "Returns", path: "/return-policy" },
+  { name: "FAQ", path: "/faqs" },
+  { name: "Privacy", path: "/privacy-policy" },
+  { name: "Terms", path: "/terms-and-conditions" },
+  { name: "Payment", path: "/payment-policy" },
+  { name: "Cancellation", path: "/order-cancellation-policy" },
+  { name: "Cookies", path: "/cookie-policy" },
+  { name: "Track order", path: "/track-order" },
 ];
 
-const extraLinks = [
-  { name: "Payment policy", path: "/payment-policy" },
-  {
-    name: "Order cancellation",
-    path: "/order-cancellation-policy",
-  },
-  { name: "Cookie policy", path: "/cookie-policy" },
-  { name: "Track your order", path: "/track-order" },
+const topNotes = [
+  "The bedding edit",
+  "Made for the room you call yours",
+  "Layer by layer",
+  "Comfort in composition",
 ];
+
+/* Sewn "M" mark — the top stroke draws itself in like a stitch */
+const BrandMark = ({ className = "" }) => (
+  <svg
+    viewBox="0 0 70 70"
+    aria-hidden="true"
+    className={`fill-none stroke-wine [stroke-linecap:round] [stroke-linejoin:round] ${className}`}
+  >
+    <path
+      pathLength="1"
+      d="M7 52V17c0-3 4-5 7-2l20 19 21-19c3-3 7-1 7 2v35"
+      className="animate-stitch [stroke-dasharray:1] [stroke-width:2.6]"
+    />
+    <path
+      d="M7 52c7-12 15-12 27 1C46 40 55 40 62 52"
+      className="animate-fade-in [animation-delay:900ms] [stroke-dasharray:3_3.5] [stroke-width:2.2]"
+    />
+    <path
+      d="M14 58h42"
+      className="animate-fade-in stroke-ink [animation-delay:1200ms] [stroke-width:2.2]"
+    />
+  </svg>
+);
 
 const Layout = ({ children }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const menuRef = useRef(null);
   const menuButtonRef = useRef(null);
 
@@ -66,28 +73,26 @@ const Layout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const address = getFullAddress();
-  const hours = [
-    storeInfo.businessDays,
-    [storeInfo.supportHours, storeInfo.timeZone]
-      .filter(Boolean)
-      .join(" "),
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
-  const phoneHref =
-    storeInfo.phoneHref ||
-    storeInfo.phoneDisplay.replace(/[^\d+]/g, "");
-
   const isActive = (path) =>
     path === "/"
       ? location.pathname === "/"
       : location.pathname === path ||
         location.pathname.startsWith(`${path}/`);
 
+  const openMenu = () => {
+    menuRef.current?.showModal();
+    document.body.style.overflow = "hidden";
+    setMenuOpen(true);
+  };
+
   const closeMenu = () => {
     menuRef.current?.close();
+  };
+
+  const handleMenuClosed = () => {
+    document.body.style.overflow = "";
+    setMenuOpen(false);
+    menuButtonRef.current?.focus();
   };
 
   const handleSearch = (event) => {
@@ -114,148 +119,185 @@ const Layout = ({ children }) => {
     return () => desktop.removeEventListener("change", handleResize);
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 24);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  const scrollToTop = () =>
+    window.scrollTo({
+      top: 0,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+
   return (
-    <div className="min-h-screen bg-paper font-sans text-navy">
-      <style>{`
-        .fb-mobile-dialog {
-          position: fixed;
-          inset: 0 0 0 auto;
-          margin: 0;
-          width: min(100%, 440px);
-          height: 100dvh;
-          max-width: 100%;
-          max-height: 100dvh;
-          padding: 0;
-          border: 0;
-          overflow-y: auto;
-          overscroll-behavior: contain;
-          background: #FFFAF3;
-          color: #17243B;
-        }
-
-        .fb-mobile-dialog::backdrop {
-          background: rgba(16, 27, 46, 0.65);
-          backdrop-filter: blur(3px);
-        }
-
-        body:has(.fb-mobile-dialog[open]) {
-          overflow: hidden;
-        }
-      `}</style>
-
+    <div className="min-h-screen bg-chalk font-sans text-ink">
       <a
         href="#main-content"
-        className="sr-only z-[100] bg-navy px-5 py-3 text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-[100] bg-ink px-5 py-3 text-paper focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
         Skip to content
       </a>
 
-      {/* HEADER */}
-      <header className="border-b border-navy/25 bg-paper">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-10 xl:min-h-24">
-          <nav
-            aria-label="Main navigation"
-            className="hidden min-w-0 items-center gap-6 xl:flex"
-          >
-            {navigation.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                aria-current={isActive(item.path) ? "page" : undefined}
-                className={`inline-flex min-h-11 items-center gap-1 border-b text-sm font-semibold transition-colors ${
-                  isActive(item.path)
-                    ? "border-gold text-navy"
-                    : "border-transparent hover:border-gold"
-                }`}
-              >
-                {item.name}
-                {item.path === "/shop" && (
-                  <ArrowUpRight
-                    size={13}
-                    className="text-gold"
-                    aria-hidden="true"
-                  />
-                )}
-              </Link>
-            ))}
-          </nav>
+      {/* TOP NOTE — moving ribbon */}
+      <div className="overflow-hidden bg-wine text-paper">
+        <div className="flex w-max animate-marquee items-center py-2 hover:[animation-play-state:paused]">
+          {[0, 1].map((copy) => (
+            <div
+              key={copy}
+              aria-hidden={copy === 1 ? "true" : undefined}
+              className="flex shrink-0 items-center"
+            >
+              {topNotes.map((note) => (
+                <span
+                  key={note}
+                  className="flex items-center gap-6 px-6 text-[10px] font-semibold uppercase tracking-[0.2em] sm:text-[11px]"
+                >
+                  {note}
+                  <span aria-hidden="true" className="text-sm">
+                    ✳
+                  </span>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
 
+      {/* HEADER */}
+      <header
+        className={`sticky top-0 z-40 border-b border-line transition-[background-color,box-shadow] duration-300 ${
+          scrolled
+            ? "bg-chalk/85 shadow-[0_12px_30px_-24px_rgba(36,34,35,0.6)] backdrop-blur-md"
+            : "bg-chalk"
+        }`}
+      >
+        <div
+          className={`mx-auto grid max-w-[1600px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 transition-[height] duration-300 sm:px-6 lg:px-10 ${
+            scrolled ? "h-16 xl:h-[72px]" : "h-[68px] xl:h-[88px]"
+          }`}
+        >
+          {/* Left: desktop nav / mobile menu button */}
+          <div className="flex min-w-0 items-center">
+            <button
+              ref={menuButtonRef}
+              type="button"
+              aria-label="Open navigation"
+              aria-haspopup="dialog"
+              aria-controls="modmila-navigation"
+              aria-expanded={menuOpen}
+              onClick={openMenu}
+              className="group -ml-2 flex h-11 w-11 flex-col items-start justify-center gap-1.5 px-2 xl:hidden"
+            >
+              <span className="h-px w-6 bg-ink transition-all duration-300 group-hover:w-4 group-hover:bg-wine" />
+              <span className="h-px w-4 bg-ink transition-all duration-300 group-hover:w-6 group-hover:bg-wine" />
+            </button>
+
+            <nav
+              aria-label="Main navigation"
+              className="hidden min-w-0 items-center gap-7 xl:flex"
+            >
+              {navigation.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  aria-current={isActive(item.path) ? "page" : undefined}
+                  className={`group relative inline-flex min-h-11 items-center gap-1 text-[13px] font-semibold transition-colors ${
+                    isActive(item.path) ? "text-wine" : "hover:text-wine"
+                  }`}
+                >
+                  {item.name}
+                  {item.path === "/shop" && (
+                    <ArrowUpRight
+                      size={13}
+                      className="text-wine transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span
+                    aria-hidden="true"
+                    className={`absolute inset-x-0 bottom-2 h-px origin-left bg-wine transition-transform duration-300 ${
+                      isActive(item.path)
+                        ? "scale-x-100"
+                        : "scale-x-0 group-hover:scale-x-100"
+                    }`}
+                  />
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          {/* Center: logo */}
           <Link
             to="/"
             aria-label={`${storeInfo.businessName} home`}
-            className="min-w-0 shrink-0 xl:order-last"
+            className="group flex shrink-0 items-center gap-2 perspective-midrange"
           >
-            <img
-              src="/logo-mark.png"
-              alt={storeInfo.businessName}
-              width="196"
-              height="56"
-              className="h-auto w-[128px] -rotate-3 transition-transform hover:rotate-0 sm:w-[170px] xl:w-[196px]"
-              style={{
-                filter:
-                  "brightness(0) saturate(100%) invert(12%) sepia(19%) saturate(1500%) hue-rotate(179deg) brightness(94%) contrast(95%)",
-              }}
-            />
+            <BrandMark className="size-7 transition-transform duration-700 transform-3d group-hover:rotate-y-180 sm:size-8 xl:size-9" />
+            <span className="text-2xl font-semibold lowercase leading-none tracking-[-0.085em] sm:text-[28px] xl:text-[31px]">
+              {storeInfo.businessName}
+            </span>
           </Link>
 
-          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+          {/* Right: search, account, cart, help */}
+          <div className="flex min-w-0 items-center justify-end gap-1 sm:gap-2">
             <form
               onSubmit={handleSearch}
               role="search"
-              className="hidden h-11 w-[175px] items-center border-b border-navy/30 md:flex 2xl:w-[210px]"
+              className="group hidden h-11 w-[170px] items-center border-b border-line transition-colors focus-within:border-wine md:flex 2xl:w-[210px]"
             >
               <input
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search bags..."
+                placeholder="Search bedding..."
                 aria-label="Search products"
-                className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm placeholder:text-mute"
+                className="h-full min-w-0 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted"
               />
               <button
                 type="submit"
                 aria-label="Search"
-                className="flex h-11 w-11 shrink-0 items-center justify-center hover:text-gold"
+                className="flex h-11 w-9 shrink-0 items-center justify-center transition-colors hover:text-wine"
               >
-                <Search size={18} />
+                <Search size={17} strokeWidth={1.8} />
               </button>
             </form>
 
             <Link
               to="/login"
               aria-label="My account"
-              className="hidden h-11 w-11 items-center justify-center hover:text-gold sm:flex"
+              className="hidden h-11 w-11 items-center justify-center transition-colors hover:text-wine sm:flex"
             >
-              <User size={19} strokeWidth={1.7} />
+              <User size={19} strokeWidth={1.6} />
             </Link>
 
             <Link
-  to="/cart"
-  aria-label={`Shopping cart with ${cartCount || 0} items`}
-  className="inline-flex min-h-11 items-center gap-1 px-2 text-xs font-semibold hover:text-gold sm:text-sm"
->
-  Cart
-  <span>({cartCount || 0})</span>
-</Link>
+              to="/cart"
+              aria-label={`Shopping cart with ${cartCount || 0} items`}
+              className="group inline-flex min-h-11 items-center gap-2.5 text-[13px] font-semibold transition-colors hover:text-wine"
+            >
+              <span className="hidden sm:inline">Cart</span>
+              <span
+                key={cartCount || 0}
+                className="grid size-7 animate-scale-in place-items-center rounded-full border border-ink text-xs transition-colors group-hover:border-wine group-hover:bg-wine group-hover:text-paper"
+              >
+                {cartCount || 0}
+              </span>
+            </Link>
 
-            <a
-              href="#help"
-              className="hidden min-h-11 items-center px-2 text-sm font-semibold hover:text-gold xl:inline-flex"
+            <Link
+              to="/faqs"
+              className="hidden min-h-11 items-center px-2 text-[13px] font-semibold transition-colors hover:text-wine xl:inline-flex"
             >
               Help
-            </a>
-
-            <button
-              ref={menuButtonRef}
-              type="button"
-              aria-label="Open navigation"
-              aria-haspopup="dialog"
-              aria-controls="fablebelle-navigation"
-              onClick={() => menuRef.current?.showModal()}
-              className="flex h-11 w-11 items-center justify-center hover:text-gold xl:hidden"
-            >
-              <Menu size={23} strokeWidth={1.7} />
-            </button>
+            </Link>
           </div>
         </div>
       </header>
@@ -263,10 +305,10 @@ const Layout = ({ children }) => {
       {/* MOBILE AND TABLET NAVIGATION */}
       <dialog
         ref={menuRef}
-        id="fablebelle-navigation"
-        aria-labelledby="fablebelle-menu-title"
-        className="fb-mobile-dialog"
-        onClose={() => menuButtonRef.current?.focus()}
+        id="modmila-navigation"
+        aria-labelledby="modmila-menu-title"
+        className="fixed inset-y-0 left-auto right-0 m-0 h-dvh max-h-dvh w-[min(100%,440px)] max-w-full overflow-y-auto overscroll-contain border-0 bg-chalk p-0 text-ink backdrop:bg-ink/60 backdrop:backdrop-blur-[3px] open:animate-drawer-in"
+        onClose={handleMenuClosed}
         onClick={(event) => {
           if (event.target !== event.currentTarget) return;
 
@@ -281,12 +323,13 @@ const Layout = ({ children }) => {
           }
         }}
       >
-        <div className="p-6 sm:p-8">
-          <div className="mb-8 flex items-center justify-between gap-4">
+        <div className="flex min-h-full flex-col p-5 sm:p-8">
+          <div className="mb-7 flex items-center justify-between gap-4 border-b border-dashed border-line pb-5">
             <h2
-              id="fablebelle-menu-title"
-              className="text-xl font-semibold tracking-tight"
+              id="modmila-menu-title"
+              className="flex items-center gap-2 text-2xl font-semibold lowercase tracking-[-0.085em]"
             >
+              <BrandMark className="size-7" />
               {storeInfo.businessName}
             </h2>
 
@@ -294,306 +337,177 @@ const Layout = ({ children }) => {
               type="button"
               onClick={closeMenu}
               aria-label="Close navigation"
-              className="flex h-11 w-11 items-center justify-center border border-navy/30"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-line transition-all duration-300 hover:rotate-90 hover:border-wine hover:text-wine"
             >
-              <X size={21} />
+              <X size={20} strokeWidth={1.6} />
             </button>
           </div>
 
           <form
             onSubmit={handleSearch}
             role="search"
-            className="mb-7 flex min-h-12 border border-navy/30"
+            className="mb-6 flex min-h-12 border border-line bg-paper transition-colors focus-within:border-wine"
           >
             <input
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search handbags..."
+              placeholder="Search bedding..."
               aria-label="Search products"
-              className="min-w-0 flex-1 bg-transparent px-4 text-sm"
+              className="min-w-0 flex-1 bg-transparent px-4 text-sm outline-none placeholder:text-muted"
             />
             <button
               type="submit"
               aria-label="Search"
-              className="flex w-12 shrink-0 items-center justify-center"
+              className="flex w-12 shrink-0 items-center justify-center hover:text-wine"
             >
-              <Search size={19} />
+              <Search size={18} strokeWidth={1.8} />
             </button>
           </form>
 
-          <nav aria-label="Mobile navigation">
-            {navigation.map((item) => (
+          {/* key re-runs the 3D fold animation each time the menu opens */}
+          <nav
+            key={menuOpen ? "open" : "closed"}
+            aria-label="Mobile navigation"
+            className="perspective-distant"
+          >
+            {navigation.map((item, index) => (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={closeMenu}
                 aria-current={isActive(item.path) ? "page" : undefined}
-                className={`flex min-h-16 items-center justify-between gap-4 border-b border-navy/20 px-2 text-xl tracking-tight transition-colors ${
-                  isActive(item.path)
-                    ? "bg-champagne"
-                    : "hover:bg-champagne"
+                style={{ animationDelay: `${120 + index * 70}ms` }}
+                className={`group flex min-h-16 animate-fold-in items-center justify-between gap-4 border-b border-line px-1 font-serif text-[28px] leading-none transition-colors ${
+                  isActive(item.path) ? "text-wine" : "hover:text-wine"
                 }`}
               >
-                {item.name}
-                <ArrowUpRight size={20} aria-hidden="true" />
+                <span className="flex items-baseline gap-3">
+                  <span className="font-sans text-[10px] font-semibold tracking-[0.2em] text-muted">
+                    0{index + 1}
+                  </span>
+                  {item.name}
+                </span>
+                <ArrowUpRight
+                  size={20}
+                  strokeWidth={1.5}
+                  className="transition-transform duration-300 group-hover:-translate-y-1 group-hover:translate-x-1"
+                  aria-hidden="true"
+                />
               </Link>
             ))}
           </nav>
 
-          <Link
-            to="/login"
-            onClick={closeMenu}
-            className="mt-8 flex min-h-12 items-center justify-center gap-3 bg-navy px-5 py-3 text-sm font-semibold text-white hover:bg-navy-dark"
-          >
-            <User size={17} />
-            My account
-          </Link>
-
-          <Link
-            to="/track-order"
-            onClick={closeMenu}
-            className="mt-3 flex min-h-12 items-center justify-center border border-navy/30 px-5 py-3 text-sm"
-          >
-            Track your order
-          </Link>
-        </div>
-      </dialog>
-
-      {/* PAGE CONTENT */}
-      <main id="main-content" tabIndex={-1} className="min-w-0">
-        {children}
-      </main>
-
-      {/* BRAND STRIP */}
-      <section
-        aria-label="FableBelle approach"
-        className="bg-gold text-white"
-      >
-        <div className="mx-auto flex max-w-[1600px] items-center gap-5 px-5 py-8 sm:px-6 lg:gap-8 lg:px-10 lg:py-10">
-          <span
-            aria-hidden="true"
-            className="shrink-0 text-4xl font-bold tracking-[-0.12em]"
-          >
-            f<span className="text-champagne">.</span>b
-          </span>
-
-          <p className="text-lg font-medium leading-snug tracking-[-0.04em] sm:text-2xl lg:text-3xl">
-            Good design leaves room for your life.
-          </p>
-
-          <span className="ml-auto hidden shrink-0 text-[10px] font-bold uppercase tracking-[0.15em] xl:block">
-            Make it yours / Carry it your way
-          </span>
-        </div>
-      </section>
-
-      {/* SERVICE DESK */}
-      <footer id="help" className="scroll-mt-6 bg-navy-dark text-paper">
-        <div className="mx-auto max-w-[1600px] px-5 pb-6 pt-16 sm:px-6 sm:pt-20 lg:px-10 lg:pt-28">
-          <div className="grid gap-8 lg:grid-cols-[0.8fr_1.6fr_0.6fr] lg:gap-10">
-            <p className="flex items-start gap-3 pt-2 text-[10px] font-bold uppercase tracking-[0.13em] sm:text-xs">
-              <span
-                aria-hidden="true"
-                className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-champagne"
-              />
-              {storeInfo.businessName} / Service desk
+          <div className="mt-7">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
+              Shop by layer
             </p>
-
-            <div className="min-w-0">
-              <h2 className="text-[clamp(2.5rem,6vw,6rem)] font-medium leading-[1.04] tracking-[-0.065em]">
-                Need a hand
-                <br />
-                with the details?
-              </h2>
-
-              <p className="mt-5 max-w-md text-sm leading-7 text-paper/80 sm:text-base">
-                Start with a question. Product and order information should
-                feel straightforward from the first look.
-              </p>
-            </div>
-
-            <Link
-              to="/contact"
-              className="flex h-28 w-28 flex-col justify-center gap-3 rounded-full bg-champagne p-5 text-sm font-bold leading-tight text-navy transition-transform hover:rotate-0 sm:h-32 sm:w-32 lg:rotate-6 lg:self-end lg:justify-self-end"
-            >
-              Contact
-              <br />
-              details
-              <ArrowUpRight size={22} aria-hidden="true" />
-            </Link>
-          </div>
-
-          {/* REFERENCE BOARD */}
-          <div className="mt-14 bg-champagne text-navy shadow-[7px_9px_0_rgba(0,0,0,0.16)] sm:mt-20 lg:mt-24">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/40 px-5 py-4 text-[10px] font-bold uppercase tracking-[0.14em] sm:px-7">
-              <span>Your reference sheet</span>
-              <span>01—05</span>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-6">
-              {referenceLinks.map((item, index) => (
+            <div className="grid grid-cols-2 gap-2">
+              {CATEGORIES.map((category) => (
                 <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`group flex min-h-28 min-w-0 flex-col justify-between gap-5 border-b border-navy/40 p-5 transition-colors hover:bg-navy hover:text-paper sm:p-7 ${
-                    index < 3 ? "lg:col-span-2" : "lg:col-span-3"
-                  } ${index % 2 === 0 ? "sm:border-r" : ""} ${
-                    index === 4 ? "sm:col-span-2 lg:col-span-3" : ""
-                  }`}
+                  key={category.slug}
+                  to={`/shop?category=${category.slug}`}
+                  onClick={closeMenu}
+                  className="border border-line bg-paper px-3 py-3 text-xs font-semibold leading-snug transition-colors hover:border-wine hover:text-wine"
                 >
-                  <span className="text-xl font-medium leading-tight tracking-[-0.04em] sm:text-2xl">
-                    {item.name}
-                  </span>
-
-                  <span className="flex items-center justify-between gap-4">
-                    <span className="text-xs">{item.note}</span>
-                    <ArrowUpRight
-                      size={21}
-                      className="shrink-0 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1"
-                      aria-hidden="true"
-                    />
-                  </span>
+                  {category.name}
                 </Link>
               ))}
             </div>
           </div>
 
-          {/* BUSINESS DETAILS AND LINKS */}
-          <div className="mt-14 grid gap-10 border-b border-paper/25 pb-10 md:grid-cols-2 lg:grid-cols-3">
-            <div className="min-w-0">
-              <Link
-                to="/"
-                className="text-2xl font-semibold tracking-[-0.05em]"
-              >
-                {storeInfo.businessName}
-              </Link>
+          <div className="mt-auto pt-8">
+            <Link
+              to="/login"
+              onClick={closeMenu}
+              className="flex min-h-12 items-center justify-center gap-3 bg-ink px-5 py-3 text-sm font-semibold text-paper transition-colors hover:bg-wine"
+            >
+              <User size={17} />
+              My account
+            </Link>
 
-              <p className="mt-4 max-w-sm text-sm leading-7 text-paper/75">
-                Find your way to carry. Explore shapes for your daily
-                routines and the moments in between.
-              </p>
-
-              <Link
-                to="/shop"
-                className="mt-5 inline-flex min-h-11 items-center gap-4 text-sm font-semibold"
-              >
-                Explore the collection
-                <ArrowUpRight size={18} aria-hidden="true" />
-              </Link>
-            </div>
-
-            <div className="min-w-0">
-              <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-champagne">
-                Explore
-              </h3>
-
-              <nav
-                aria-label="Footer navigation"
-                className="flex flex-wrap gap-x-6 gap-y-1"
-              >
-                {navigation.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className="inline-flex min-h-11 items-center text-sm text-paper/80 hover:text-white"
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-              </nav>
-            </div>
-
-            <div className="min-w-0 md:col-span-2 lg:col-span-1">
-              <h3 className="mb-4 text-xs font-bold uppercase tracking-[0.14em] text-champagne">
-                Get in touch
-              </h3>
-
-              <div className="space-y-4 text-sm leading-6 text-paper/80">
-                {storeInfo.email && (
-                  <a
-                    href={`mailto:${storeInfo.email}`}
-                    className="flex min-w-0 items-start gap-3 hover:text-white"
-                  >
-                    <Mail size={17} className="mt-1 shrink-0" />
-                    <span className="break-all">{storeInfo.email}</span>
-                  </a>
-                )}
-
-                {storeInfo.phoneDisplay && (
-                  <a
-                    href={`tel:${phoneHref}`}
-                    className="flex items-start gap-3 hover:text-white"
-                  >
-                    <Phone size={17} className="mt-1 shrink-0" />
-                    <span>{storeInfo.phoneDisplay}</span>
-                  </a>
-                )}
-
-                {address && (
-                  <div className="flex items-start gap-3">
-                    <MapPin size={17} className="mt-1 shrink-0" />
-                    <p className="min-w-0 break-words">{address}</p>
-                  </div>
-                )}
-
-                {hours && (
-                  <div className="flex items-start gap-3">
-                    <Clock size={17} className="mt-1 shrink-0" />
-                    <p className="min-w-0 break-words">{hours}</p>
-                  </div>
-                )}
-
-                <Link
-                  to="/contact"
-                  className="inline-flex min-h-11 items-center gap-3 font-semibold text-white"
-                >
-                  Contact support
-                  <ArrowUpRight size={17} aria-hidden="true" />
-                </Link>
-              </div>
-            </div>
+            <Link
+              to="/track-order"
+              onClick={closeMenu}
+              className="mt-3 flex min-h-12 items-center justify-center border border-ink px-5 py-3 text-sm font-semibold transition-colors hover:border-wine hover:text-wine"
+            >
+              Track your order
+            </Link>
           </div>
+        </div>
+      </dialog>
 
-          <nav
-            aria-label="Additional customer policies"
-            className="flex flex-wrap gap-x-6 gap-y-1 border-b border-paper/25 py-5"
-          >
-            {extraLinks.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className="inline-flex min-h-11 items-center text-xs text-paper/80 hover:text-white"
+      {/* PAGE CONTENT */}
+      <main id="main-content" tabIndex={-1} className="min-w-0 outline-none">
+        {children}
+      </main>
+
+      {/* FOOTER — folded care label */}
+      <footer
+        id="help"
+        className="relative scroll-mt-20 overflow-hidden bg-ink px-5 pb-[25px] pt-20 text-paper sm:px-[clamp(20px,6vw,104px)] sm:pt-[90px]"
+      >
+        <div
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-7 bg-chalk opacity-[0.98] [clip-path:polygon(0_0,100%_0,50%_100%)]"
+        />
+
+        <div className="mx-auto max-w-[1600px]">
+          <div className="grid items-end gap-10 pb-[70px] md:grid-cols-2 md:gap-[30px] lg:grid-cols-[1fr_1fr_auto] lg:pb-[105px]">
+            <Link
+              to="/"
+              aria-label={`${storeInfo.businessName} home`}
+              className="w-fit animate-rise text-[clamp(40px,5vw,84px)] font-semibold lowercase leading-none tracking-[-0.09em]"
+            >
+              {storeInfo.businessName}
+              <span
+                aria-hidden="true"
+                className="ml-2 inline-block animate-[spin_16s_linear_infinite] align-top text-xl tracking-normal text-[#d9a9ae]"
               >
-                {item.name}
-              </Link>
-            ))}
-          </nav>
+                ✳
+              </span>
+            </Link>
 
-          <div className="flex flex-col gap-4 pt-6 text-xs text-paper/75 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            <p>
-              © {new Date().getFullYear()} {storeInfo.businessName}.
-              All rights reserved.
+            <p className="m-0 animate-rise font-serif text-[clamp(32px,3.3vw,54px)] leading-[1.05] [animation-delay:150ms]">
+              Stay a little longer.
+              <br />
+              <em>Make yourself at home.</em>
             </p>
-
-            <p>Thoughtfully carried, clearly explained.</p>
 
             <button
               type="button"
-              onClick={() =>
-                window.scrollTo({
-                  top: 0,
-                  behavior: window.matchMedia(
-                    "(prefers-reduced-motion: reduce)",
-                  ).matches
-                    ? "auto"
-                    : "smooth",
-                })
-              }
-              className="inline-flex min-h-11 items-center self-start font-semibold text-champagne"
+              onClick={scrollToTop}
+              className="group w-fit border-b border-[#a79792] pb-2.5 text-[13px] transition-colors hover:border-[#d9a9ae] hover:text-[#d9a9ae] md:col-start-2 lg:col-start-auto"
             >
-              Back to top ↑
+              Back to top{" "}
+              <span
+                aria-hidden="true"
+                className="inline-block transition-transform duration-300 group-hover:-translate-y-1"
+              >
+                ↑
+              </span>
             </button>
+          </div>
+
+          <div className="flex flex-col items-start gap-[25px] border-t border-[#746d6a] pt-6 text-[11px] tracking-[0.1em] md:flex-row md:items-center md:justify-between">
+            <nav
+              aria-label="Footer navigation"
+              className="flex flex-wrap gap-x-[25px] gap-y-[15px]"
+            >
+              {footerLinks.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="text-xs tracking-[0.02em] text-paper transition-colors duration-200 hover:text-[#d9a9ae]"
+                >
+                  {item.name}
+                </Link>
+              ))}
+            </nav>
+
+            <span className="whitespace-nowrap uppercase">
+              © {new Date().getFullYear()} {storeInfo.businessName}
+            </span>
           </div>
         </div>
       </footer>

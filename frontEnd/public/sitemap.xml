@@ -1,60 +1,87 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-
   <url>
-    <loc>https://fablebelle.com/</loc>
+    <loc>https://modmila.com/</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/shop</loc>
+    <loc>https://modmila.com/shop</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/categories</loc>
+    <loc>https://modmila.com/categories</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/about</loc>
+    <loc>https://modmila.com/about</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/contact</loc>
+    <loc>https://modmila.com/contact</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/track-order</loc>
+    <loc>https://modmila.com/faqs</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/shipping-policy</loc>
+    <loc>https://modmila.com/track-order</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/return-policy</loc>
+    <loc>https://modmila.com/shipping-policy</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/privacy-policy</loc>
+    <loc>https://modmila.com/return-policy</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/payment-policy</loc>
+    <loc>https://modmila.com/privacy-policy</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/order-cancellation-policy</loc>
+    <loc>https://modmila.com/payment-policy</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/cookie-policy</loc>
+    <loc>https://modmila.com/order-cancellation-policy</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/faqs</loc>
+    <loc>https://modmila.com/cookie-policy</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
-
   <url>
-    <loc>https://fablebelle.com/terms-and-conditions</loc>
+    <loc>https://modmila.com/terms-and-conditions</loc>
+    <lastmod>2026-10-08</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
-
 </urlset>

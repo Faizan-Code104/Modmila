@@ -3,44 +3,50 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  ChevronDown,
+  ChevronLeft,
   Clock3,
   ImageOff,
   MapPin,
-  ShoppingBag,
   Truck,
   User,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useCart } from "./CartContext";
+import storeInfo, { STORAGE_KEYS } from "../storeInfo";
 
 const money = (value) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: storeInfo.currency || "USD",
   }).format(Number(value) || 0);
 
 const readSavedEmail = () => {
   if (typeof window === "undefined") return "";
 
-  for (const key of ["fablebelle-user", "Fable Belle-user"]) {
-    try {
-      const saved = window.localStorage.getItem(key);
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEYS.user);
 
-      if (!saved) continue;
+    if (!saved) return "";
 
-      const user = JSON.parse(saved);
+    const user = JSON.parse(saved);
 
-      if (typeof user?.email === "string" && user.email.trim()) {
-        return user.email;
-      }
-    } catch {
-      // Continue to the next supported account key.
+    if (typeof user?.email === "string" && user.email.trim()) {
+      return user.email;
     }
+  } catch {
+    // Saved account details are unavailable.
   }
 
   return "";
 };
+
+const STEPS = [
+  { label: "Contact", Icon: User },
+  { label: "Delivery", Icon: MapPin },
+  { label: "Review", Icon: Check },
+];
 
 const CheckoutImage = ({ src, name }) => {
   const [failedSource, setFailedSource] = useState(null);
@@ -48,13 +54,14 @@ const CheckoutImage = ({ src, name }) => {
   return src && failedSource !== src ? (
     <img
       src={src}
-      alt={name || "FableBelle handbag"}
+      alt={name || `${storeInfo.businessName} bedding`}
       onError={() => setFailedSource(src)}
       loading="lazy"
+      className="size-full object-cover"
     />
   ) : (
-    <div className="fbco-image-fallback">
-      <ImageOff size={25} strokeWidth={1.3} />
+    <div className="grid size-full place-items-center text-muted">
+      <ImageOff size={18} strokeWidth={1.3} />
     </div>
   );
 };
@@ -73,14 +80,9 @@ const Field = ({
   pattern,
   full = false,
 }) => (
-  <div className={`fbco-field ${full ? "fbco-field-full" : ""}`}>
-    <label htmlFor={`fbco-${name}`}>
-      {label}
-      {!required && !readOnly && <span>Optional</span>}
-    </label>
-
+  <div className={`relative min-w-0 ${full ? "sm:col-span-2" : ""}`}>
     <input
-      id={`fbco-${name}`}
+      id={`checkout-${name}`}
       name={name}
       type={type}
       value={value}
@@ -91,7 +93,20 @@ const Field = ({
       readOnly={readOnly}
       inputMode={inputMode}
       pattern={pattern}
+      className="peer min-h-[60px] w-full min-w-0 border border-line bg-paper px-4 pb-2.5 pt-6 text-base text-ink outline-none transition-[border-color,box-shadow] duration-300 placeholder:text-transparent focus:border-wine focus:shadow-[0_0_0_3px_rgba(125,48,58,0.12)] read-only:bg-linen read-only:text-muted user-invalid:border-danger"
     />
+    {/* floating label */}
+    <label
+      htmlFor={`checkout-${name}`}
+      className="pointer-events-none absolute left-4 top-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted transition-all duration-300 peer-placeholder-shown:top-[21px] peer-placeholder-shown:text-[13px] peer-placeholder-shown:font-normal peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:top-2 peer-focus:text-[10px] peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-[0.14em] peer-focus:text-wine"
+    >
+      {label}
+      {!required && !readOnly && (
+        <span className="text-[9px] font-normal normal-case tracking-normal opacity-80">
+          Optional
+        </span>
+      )}
+    </label>
   </div>
 );
 
@@ -100,6 +115,7 @@ const Checkout = () => {
   const { cartItems, cartSubtotal } = useCart();
 
   const [step, setStep] = useState(0);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const sectionTitleRef = useRef(null);
   const shouldFocusStep = useRef(false);
 
@@ -123,7 +139,7 @@ const Checkout = () => {
 
   const totalItems = items.reduce(
     (sum, item) => sum + (Number(item.quantity) || 1),
-    0
+    0,
   );
 
   useEffect(() => {
@@ -163,171 +179,250 @@ const Checkout = () => {
 
   if (items.length === 0) return null;
 
-  return (
-    <main className="fbco-page">
-      <style>{checkoutStyles}</style>
+  const OrderLines = () => (
+    <>
+      <ul className="space-y-4">
+        {items.map((item) => {
+          const id = item.id || item._id;
+          const quantity = Number(item.quantity) || 1;
 
-      <div className="fbco-container">
-        <nav className="fbco-navigation" aria-label="Checkout navigation">
-          <Link to="/cart">
-            <ArrowLeft size={16} />
+          return (
+            <li key={id} className="flex items-center gap-3">
+              <Link
+                to={`/shop/${id}`}
+                aria-label={`View ${item.name}`}
+                className="relative block size-16 shrink-0 bg-linen"
+              >
+                <span className="block size-full overflow-hidden">
+                  <CheckoutImage src={item.image} name={item.name} />
+                </span>
+                <span className="absolute -right-2 -top-2 grid size-5 place-items-center rounded-full bg-wine text-[10px] font-bold text-paper">
+                  {quantity}
+                </span>
+              </Link>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[9px] font-bold uppercase tracking-[0.16em] text-wine">
+                  {item.category || `${storeInfo.businessName} collection`}
+                </p>
+                <p className="truncate font-serif text-base leading-tight">
+                  <Link to={`/shop/${id}`} className="hover:text-wine">
+                    {item.name}
+                  </Link>
+                </p>
+                <span className="text-[11px] text-muted">Quantity: {quantity}</span>
+              </div>
+              <strong className="shrink-0 text-sm font-semibold">
+                {money(Number(item.price) * quantity)}
+              </strong>
+            </li>
+          );
+        })}
+      </ul>
+
+      <dl className="mt-5 grid gap-2.5 border-t border-dashed border-line pt-4 text-xs">
+        <div className="flex justify-between gap-3">
+          <dt className="text-muted">Subtotal</dt>
+          <dd className="font-semibold">{money(subtotal)}</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-muted">Shipping</dt>
+          <dd className="font-semibold text-success">Free</dd>
+        </div>
+      </dl>
+
+      <div className="mt-4 flex items-end justify-between gap-3 border-t-2 border-ink pt-4">
+        <span className="text-[11px] font-bold uppercase tracking-[0.16em]">
+          Order total
+        </span>
+        <strong className="break-words font-serif text-[32px] font-normal leading-none">
+          {money(total)}
+        </strong>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="min-w-0 overflow-x-clip bg-chalk pb-16 text-ink sm:pb-24">
+      {/* ============ Progress bar (continues from cart) ============ */}
+      <div className="border-b border-line bg-paper">
+        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-4 py-4 sm:px-8 lg:px-[clamp(40px,4vw,64px)]">
+          <Link
+            to="/cart"
+            className="group inline-flex min-h-11 shrink-0 items-center gap-1.5 text-xs font-semibold transition-colors hover:text-wine"
+          >
+            <ChevronLeft
+              size={17}
+              className="transition-transform duration-300 group-hover:-translate-x-1"
+            />
             Back to cart
           </Link>
-          <span>FableBelle</span>
-        </nav>
 
-        <header className="fbco-header">
-          <div>
-            <p className="fbco-overline">A little closer to yours</p>
-            <h1>
-              The final <span>details.</span>
-            </h1>
-          </div>
-
-          <p>
-            Review your selection and delivery details.
-            Online orders and payments are not yet available.
-          </p>
-        </header>
-
-        <section className="fbco-order" aria-labelledby="fbco-order-title">
-          <div className="fbco-order-intro">
-            <ShoppingBag size={25} strokeWidth={1.3} />
-            <p className="fbco-overline">Your selection</p>
-            <h2 id="fbco-order-title">
-              {totalItems} {totalItems === 1 ? "lovely piece" : "lovely pieces"}.
-            </h2>
-            <Link to="/cart">
-              Edit cart
-              <ArrowRight size={15} />
-            </Link>
-          </div>
-
-          <div className="fbco-order-items">
-            {items.map((item) => {
-              const id = item.id || item._id;
-              const quantity = Number(item.quantity) || 1;
+          <ol aria-label="Checkout progress" className="flex items-center gap-2 sm:gap-3">
+            {["Cart", "Details", "Review"].map((label, index) => {
+              const position = step === 2 ? 2 : 1;
+              const complete = index < position;
+              const current = index === position;
 
               return (
-                <article key={id} className="fbco-order-item">
-                  <Link
-                    to={`/shop/${id}`}
-                    className="fbco-order-image"
-                    aria-label={`View ${item.name}`}
+                <li key={label} className="flex items-center gap-2 sm:gap-3">
+                  <span
+                    aria-current={current ? "step" : undefined}
+                    className={`flex items-center gap-2 text-[11px] font-semibold ${
+                      current || complete ? "text-wine" : "text-muted"
+                    }`}
                   >
-                    <CheckoutImage src={item.image} name={item.name} />
-                  </Link>
+                    <span
+                      className={`grid size-6 place-items-center rounded-full text-[10px] transition-all duration-500 ${
+                        complete
+                          ? "bg-wine text-paper"
+                          : current
+                            ? "bg-wine text-paper shadow-[0_0_0_4px_rgba(125,48,58,0.15)]"
+                            : "border border-line"
+                      }`}
+                    >
+                      {complete ? <Check size={12} className="animate-scale-in" /> : index + 1}
+                    </span>
+                    <span className="hidden sm:inline">{label}</span>
+                  </span>
+                  {index < 2 && (
+                    <span aria-hidden="true" className="relative h-px w-5 bg-line sm:w-10">
+                      <span
+                        className={`absolute inset-0 origin-left bg-wine transition-transform duration-700 ease-soft ${
+                          index < position ? "scale-x-100" : "scale-x-0"
+                        }`}
+                      />
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </div>
 
-                  <div className="fbco-order-item-copy">
-                    <p>{item.category || "FableBelle collection"}</p>
-                    <Link to={`/shop/${id}`}>
-                      <h3>{item.name}</h3>
-                    </Link>
-                    <span>Quantity: {quantity}</span>
-                    <strong>{money(Number(item.price) * quantity)}</strong>
-                  </div>
-                </article>
+      <div className="mx-auto grid w-full max-w-[1500px] items-start gap-8 px-4 pt-6 sm:px-8 sm:pt-10 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-[clamp(32px,4vw,64px)] lg:px-[clamp(40px,4vw,64px)]">
+        {/* ============ Mobile summary toggle ============ */}
+        <div className="border border-ink bg-paper lg:hidden">
+          <button
+            type="button"
+            aria-expanded={summaryOpen}
+            aria-controls="mobile-order-summary"
+            onClick={() => setSummaryOpen((open) => !open)}
+            className="flex min-h-14 w-full items-center justify-between gap-4 px-4 text-sm"
+          >
+            <span className="flex items-center gap-2 font-semibold text-wine">
+              {summaryOpen ? "Hide" : "Show"} order summary
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-500 ${summaryOpen ? "rotate-180" : ""}`}
+              />
+            </span>
+            <strong className="font-serif text-xl font-normal">{money(total)}</strong>
+          </button>
+          <div
+            id="mobile-order-summary"
+            className={`grid transition-[grid-template-rows] duration-500 ease-soft ${
+              summaryOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            }`}
+          >
+            <div className="overflow-hidden">
+              <div className="border-t border-line p-4 pt-5">
+                <OrderLines />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ============ Main form ============ */}
+        <section className="min-w-0">
+          <header>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wine">
+              A little closer to yours
+            </p>
+            <h1 className="mt-3 font-serif text-[clamp(44px,5.4vw,80px)] leading-[0.95] tracking-[-0.03em] perspective-distant">
+              <span className="inline-block animate-fold-in">The final</span>{" "}
+              <em className="inline-block animate-fold-in text-wine [animation-delay:140ms]">
+                details.
+              </em>
+            </h1>
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-muted">
+              Review your selection and delivery details. Online orders and
+              payments are not yet available.
+            </p>
+          </header>
+
+          <div
+            role="note"
+            className="mt-7 flex items-start gap-3 border-l-2 border-wine bg-wine-soft px-4 py-3.5"
+          >
+            <Clock3 size={17} strokeWidth={1.5} className="mt-0.5 shrink-0 text-wine" />
+            <p className="text-[11px] leading-relaxed">
+              <strong className="block font-bold">Online checkout is coming soon.</strong>
+              These details are for review only. No order is placed and no
+              payment is collected.
+            </p>
+          </div>
+
+          {/* Segmented step tabs */}
+          <div
+            aria-label="Your details, in three steps"
+            className="relative mt-8 grid grid-cols-3 border border-ink bg-paper"
+          >
+            <span
+              aria-hidden="true"
+              style={{ transform: `translateX(${step * 100}%)` }}
+              className="absolute inset-y-0 left-0 w-1/3 bg-ink transition-transform duration-500 ease-soft"
+            />
+            {STEPS.map(({ label, Icon }, index) => {
+              const reachable = index < step;
+              const current = index === step;
+
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  disabled={!reachable}
+                  onClick={() => changeStep(index)}
+                  aria-current={current ? "step" : undefined}
+                  className={`relative flex min-h-14 items-center justify-center gap-2 text-xs font-semibold transition-colors duration-500 disabled:cursor-default sm:text-sm ${
+                    current ? "text-paper" : reachable ? "text-wine hover:underline" : "text-muted"
+                  }`}
+                >
+                  {reachable ? (
+                    <Check size={14} className="animate-scale-in" />
+                  ) : (
+                    <Icon size={14} strokeWidth={1.6} />
+                  )}
+                  <span className="hidden min-[400px]:inline">{label}</span>
+                  <span className="min-[400px]:hidden">{String(index + 1).padStart(2, "0")}</span>
+                </button>
               );
             })}
           </div>
 
-          <div className="fbco-price-review">
-            <dl>
-              <div>
-                <dt>Subtotal</dt>
-                <dd>{money(subtotal)}</dd>
-              </div>
-              <div>
-                <dt>Shipping</dt>
-                <dd>Free</dd>
-              </div>
-            </dl>
-
-            <div className="fbco-total">
-              <span>Order total</span>
-              <strong>{money(total)}</strong>
-            </div>
-          </div>
-        </section>
-
-        <div className="fbco-details-layout">
-          <aside className="fbco-guide">
-            <p className="fbco-overline">Your details, in three steps</p>
-            <h2>Where should<br />we begin?</h2>
-
-            <ol className="fbco-steps" aria-label="Checkout progress">
-              {["Contact", "Delivery", "Review"].map((label, index) => (
-                <li
-                  key={label}
-                  className={
-                    index === step
-                      ? "is-current"
-                      : index < step
-                      ? "is-complete"
-                      : ""
-                  }
-                  aria-current={index === step ? "step" : undefined}
-                >
-                  <span className="fbco-step-number">
-                    {index < step ? (
-                      <Check size={15} />
-                    ) : (
-                      String(index + 1).padStart(2, "0")
-                    )}
-                  </span>
-                  <span>{label}</span>
-                </li>
-              ))}
-            </ol>
-
-            <div className="fbco-delivery-note">
-              <Truck size={23} strokeWidth={1.3} />
-              <div>
-                <strong>United States delivery</strong>
-                <p>Free U.S. shipping is shown in your order review.</p>
-              </div>
-            </div>
-          </aside>
-
-          <section className="fbco-form-panel">
-            <div className="fbco-payment-notice" role="note">
-              <Clock3 size={19} strokeWidth={1.4} />
-              <p>
-                <strong>Online checkout is coming soon.</strong>
-                These details are for review only. No order is placed
-                and no payment is collected.
+          <div className="perspective-[1600px]">
+            <div
+              key={step}
+              className="origin-top animate-flip-up border border-t-0 border-line bg-paper p-5 sm:p-8"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">
+                Step {String(step + 1).padStart(2, "0")}
               </p>
-            </div>
-
-            <div key={step} className="fbco-step-content">
-              <div className="fbco-form-heading">
-                <span className="fbco-form-icon">
-                  {step === 0 ? (
-                    <User size={22} strokeWidth={1.3} />
-                  ) : step === 1 ? (
-                    <MapPin size={22} strokeWidth={1.3} />
-                  ) : (
-                    <Check size={22} strokeWidth={1.3} />
-                  )}
-                </span>
-
-                <div>
-                  <p className="fbco-overline">
-                    Step {String(step + 1).padStart(2, "0")}
-                  </p>
-                  <h2 ref={sectionTitleRef} tabIndex={-1}>
-                    {step === 0
-                      ? "First, a little about you."
-                      : step === 1
-                      ? "Next, your delivery details."
-                      : "Everything in one place."}
-                  </h2>
-                </div>
-              </div>
+              <h2
+                ref={sectionTitleRef}
+                tabIndex={-1}
+                className="mb-7 mt-1.5 font-serif text-[clamp(28px,2.8vw,38px)] leading-tight outline-none"
+              >
+                {step === 0
+                  ? "First, a little about you."
+                  : step === 1
+                    ? "Next, your delivery details."
+                    : "Everything in one place."}
+              </h2>
 
               {step < 2 ? (
                 <form onSubmit={handleSubmit}>
-                  <div className="fbco-fields">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     {step === 0 ? (
                       <>
                         <Field
@@ -430,908 +525,183 @@ const Checkout = () => {
                     )}
                   </div>
 
-                  <div className="fbco-form-actions">
-                    {step === 1 && (
+                  <div className="mt-8 flex flex-col-reverse items-stretch gap-3 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
+                    {step === 1 ? (
                       <button
                         type="button"
-                        className="fbco-secondary"
                         onClick={() => changeStep(0)}
+                        className="group inline-flex min-h-11 items-center justify-center gap-2 px-2 text-xs font-semibold transition-colors hover:text-wine"
                       >
-                        <ArrowLeft size={16} />
+                        <ArrowLeft
+                          size={16}
+                          className="transition-transform duration-300 group-hover:-translate-x-1"
+                        />
                         Back
                       </button>
+                    ) : (
+                      <span className="hidden text-[11px] text-muted sm:block">
+                        {totalItems} {totalItems === 1 ? "piece" : "pieces"} ·{" "}
+                        {money(total)}
+                      </span>
                     )}
 
-                    <button type="submit" className="fbco-primary">
-                      {step === 0
-                        ? "Continue to delivery"
-                        : "Review details"}
-                      <ArrowRight size={18} />
+                    <button
+                      type="submit"
+                      className="group relative flex min-h-[56px] items-center justify-between gap-8 overflow-hidden bg-wine px-6 py-4 text-xs font-bold text-paper transition-colors duration-300 hover:bg-wine-dark"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-paper/15 transition-transform duration-700 group-hover:translate-x-[420%]"
+                      />
+                      <span className="relative">
+                        {step === 0 ? "Continue to delivery" : "Review details"}
+                      </span>
+                      <ArrowRight
+                        size={18}
+                        className="relative transition-transform duration-300 group-hover:translate-x-1"
+                      />
                     </button>
                   </div>
                 </form>
               ) : (
-                <div className="fbco-review">
-                  <section className="fbco-review-section">
-                    <div className="fbco-review-heading">
-                      <h3>Contact</h3>
-                      <button
-                        type="button"
-                        onClick={() => changeStep(0)}
+                <div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {[
+                      {
+                        title: "Contact",
+                        target: 0,
+                        Icon: User,
+                        lines: [
+                          `${formData.firstName} ${formData.lastName}`,
+                          formData.email,
+                          formData.phone,
+                        ],
+                      },
+                      {
+                        title: "Delivery address",
+                        target: 1,
+                        Icon: MapPin,
+                        lines: [
+                          formData.address,
+                          formData.apartment,
+                          `${formData.city}, ${formData.state} ${formData.postalCode}`,
+                          formData.country,
+                        ],
+                      },
+                    ].map(({ title, target, Icon, lines }, index) => (
+                      <section
+                        key={title}
+                        style={{ animationDelay: `${200 + index * 120}ms` }}
+                        className="relative animate-rise border border-line bg-chalk p-5"
                       >
-                        Edit
-                      </button>
-                    </div>
+                        <div className="mb-3 flex items-center justify-between gap-4">
+                          <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em]">
+                            <Icon size={15} className="text-wine" />
+                            {title}
+                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => changeStep(target)}
+                            className="min-h-10 px-1 text-xs font-semibold text-wine underline underline-offset-4"
+                          >
+                            Edit
+                          </button>
+                        </div>
 
-                    <p>
-                      {formData.firstName} {formData.lastName}
-                    </p>
-                    <p>{formData.email}</p>
-                    {formData.phone && <p>{formData.phone}</p>}
-                  </section>
+                        {lines.filter(Boolean).map((line, lineIndex) => (
+                          <p
+                            key={`${title}-${lineIndex}`}
+                            className="my-0.5 break-words text-[13px] text-muted"
+                          >
+                            {line}
+                          </p>
+                        ))}
+                      </section>
+                    ))}
+                  </div>
 
-                  <section className="fbco-review-section">
-                    <div className="fbco-review-heading">
-                      <h3>Delivery address</h3>
-                      <button
-                        type="button"
-                        onClick={() => changeStep(1)}
-                      >
-                        Edit
-                      </button>
-                    </div>
-
-                    <p>{formData.address}</p>
-                    {formData.apartment && <p>{formData.apartment}</p>}
-                    <p>
-                      {formData.city}, {formData.state}{" "}
-                      {formData.postalCode}
-                    </p>
-                    <p>{formData.country}</p>
-                  </section>
-
-                  <div className="fbco-review-status">
-                    <Clock3 size={23} strokeWidth={1.3} />
+                  <div className="my-6 flex animate-rise items-start gap-4 bg-wine-soft p-5 [animation-delay:450ms]">
+                    <Clock3 size={22} strokeWidth={1.4} className="mt-0.5 shrink-0 text-wine" />
                     <div>
-                      <h3>Payment is not available yet.</h3>
-                      <p>
-                        FableBelle is completing its online payment
-                        setup. Your order has not been submitted.
-                        These details are not saved when you leave
-                        this page.
+                      <h3 className="text-sm font-bold">Payment is not available yet.</h3>
+                      <p className="mt-2 text-xs leading-relaxed">
+                        {storeInfo.businessName} is completing its online
+                        payment setup. Your order has not been submitted.
+                        These details are not saved when you leave this page.
                       </p>
                     </div>
                   </div>
 
-                  <Link to="/cart" className="fbco-primary">
+                  <Link
+                    to="/cart"
+                    className="group flex min-h-[56px] items-center justify-between gap-6 bg-ink px-6 py-4 text-xs font-bold text-paper transition-colors duration-300 hover:bg-wine"
+                  >
                     Return to cart
-                    <ArrowRight size={18} />
+                    <ArrowRight
+                      size={18}
+                      className="transition-transform duration-300 group-hover:translate-x-1"
+                    />
                   </Link>
                 </div>
               )}
             </div>
-          </section>
-        </div>
+          </div>
+
+          <div className="mt-6 flex items-start gap-3">
+            <Truck size={20} strokeWidth={1.4} className="mt-0.5 shrink-0 text-wine" />
+            <div>
+              <strong className="text-xs">United States delivery</strong>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+                Free U.S. shipping is shown in your order review.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ============ Desktop receipt ============ */}
+        <aside
+          aria-labelledby="checkout-order-title"
+          className="hidden min-w-0 lg:sticky lg:top-28 lg:block"
+        >
+          <div className="animate-flip-up [animation-delay:200ms]">
+            <div className="bg-paper px-6 pb-6 pt-7 shadow-[0_30px_60px_-40px_rgba(36,34,35,0.7)]">
+              <div className="mb-5 flex items-end justify-between gap-3 border-b border-dashed border-line pb-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wine">
+                    Your selection
+                  </p>
+                  <h2 id="checkout-order-title" className="mt-1 font-serif text-2xl">
+                    {totalItems} {totalItems === 1 ? "lovely piece" : "lovely pieces"}.
+                  </h2>
+                </div>
+                <Link
+                  to="/cart"
+                  className="group inline-flex min-h-10 items-center gap-1.5 text-[11px] font-bold text-wine"
+                >
+                  Edit cart
+                  <ArrowRight
+                    size={13}
+                    className="transition-transform duration-300 group-hover:translate-x-1"
+                  />
+                </Link>
+              </div>
+
+              <OrderLines />
+
+              <p className="mt-6 text-center text-lg font-semibold lowercase tracking-[-0.085em]">
+                {storeInfo.businessName}
+                <span className="text-wine">✳</span>
+              </p>
+            </div>
+            <div
+              aria-hidden="true"
+              className="h-3 bg-[radial-gradient(circle_at_8px_0,var(--color-paper)_7px,transparent_7.5px)] bg-[length:16px_12px] bg-repeat-x"
+            />
+          </div>
+        </aside>
       </div>
-    </main>
+    </div>
   );
 };
-
-const checkoutStyles = `
-  .fbco-page {
-    --forest: #173f36;
-    --deep: #102e28;
-    --pistachio: #d7e5a5;
-    --bone: #f5f0e6;
-    --paper: #fffdf5;
-    --brass: #a56e4f;
-    --line: rgba(23, 63, 54, .24);
-    min-height: 100vh;
-    padding-bottom: clamp(50px, 7vw, 100px);
-    background: var(--bone);
-    color: var(--forest);
-    font-family: 'Onest', ui-sans-serif, system-ui, -apple-system,
-      BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    line-height: 1.5;
-  }
-
-  .fbco-page *,
-  .fbco-page *::before,
-  .fbco-page *::after {
-    box-sizing: border-box;
-  }
-
-  .fbco-page a {
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .fbco-page button,
-  .fbco-page input {
-    font: inherit;
-  }
-
-  .fbco-page button {
-    cursor: pointer;
-  }
-
-  .fbco-page a:focus-visible,
-  .fbco-page button:focus-visible,
-  .fbco-page input:focus-visible {
-    outline: 3px solid var(--brass);
-    outline-offset: 4px;
-  }
-
-  .fbco-container {
-    width: min(100%, 1450px);
-    margin-inline: auto;
-    padding-inline: clamp(20px, 4.2vw, 70px);
-  }
-
-  .fbco-navigation {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    padding-block: 16px;
-    border-bottom: 1px solid var(--line);
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .fbco-navigation a {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    min-height: 44px;
-  }
-
-  .fbco-navigation svg {
-    transition: transform .25s ease;
-  }
-
-  .fbco-navigation a:hover svg {
-    transform: translateX(-4px);
-  }
-
-  .fbco-header {
-    display: grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, .65fr);
-    align-items: end;
-    gap: 35px;
-    padding-block: clamp(35px, 5vw, 65px);
-    animation: fbcoEnter .65s both;
-  }
-
-  .fbco-overline {
-    margin: 0;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .13em;
-    text-transform: uppercase;
-  }
-
-  .fbco-header h1 {
-    margin: 14px 0 0;
-    font-size: clamp(48px, 6.8vw, 94px);
-    font-weight: 500;
-    line-height: 1;
-    letter-spacing: -.075em;
-  }
-
-  .fbco-header h1 span {
-    color: var(--brass);
-  }
-
-  .fbco-header > p {
-    max-width: 340px;
-    margin: 0 0 5px;
-    font-size: 14px;
-    line-height: 1.8;
-  }
-
-  .fbco-order {
-    display: grid;
-    grid-template-columns: 200px minmax(0, 1fr) 230px;
-    border: 1px solid var(--forest);
-    background: var(--paper);
-    animation: fbcoEnter .65s .08s both;
-  }
-
-  .fbco-order-intro {
-    padding: 25px;
-    background: var(--pistachio);
-  }
-
-  .fbco-order-intro .fbco-overline {
-    margin-top: 18px;
-  }
-
-  .fbco-order-intro h2 {
-    margin: 10px 0 16px;
-    font-size: 30px;
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.05em;
-  }
-
-  .fbco-order-intro a {
-    display: inline-flex;
-    align-items: center;
-    gap: 15px;
-    min-height: 44px;
-    font-size: 11px;
-    font-weight: 700;
-  }
-
-  .fbco-order-items {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-content: start;
-    gap: 24px;
-    padding: 28px;
-  }
-
-  .fbco-order-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 13px;
-    min-width: 0;
-  }
-
-  .fbco-order-image {
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    width: 75px;
-    height: 100px;
-    overflow: hidden;
-    background: #e6eadb;
-  }
-
-  .fbco-order-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    padding: 7px;
-    transition: transform .4s ease;
-  }
-
-  .fbco-order-image:hover img {
-    transform: scale(1.07);
-  }
-
-  .fbco-image-fallback {
-    display: grid;
-    place-items: center;
-    width: 100%;
-    height: 100%;
-  }
-
-  .fbco-order-item-copy {
-    min-width: 0;
-  }
-
-  .fbco-order-item-copy > p {
-    margin: 0;
-    color: var(--brass);
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    overflow-wrap: anywhere;
-  }
-
-  .fbco-order-item-copy h3 {
-    margin: 5px 0 7px;
-    font-size: 17px;
-    font-weight: 500;
-    line-height: 1.2;
-    letter-spacing: -.035em;
-    overflow-wrap: anywhere;
-  }
-
-  .fbco-order-item-copy > span {
-    display: block;
-    font-size: 10px;
-    color: #516b62;
-  }
-
-  .fbco-order-item-copy strong {
-    display: block;
-    margin-top: 7px;
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  .fbco-price-review {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 25px;
-    border-left: 1px solid var(--line);
-  }
-
-  .fbco-price-review dl {
-    display: grid;
-    gap: 14px;
-    margin: 0;
-  }
-
-  .fbco-price-review dl > div {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 12px;
-  }
-
-  .fbco-price-review dd {
-    margin: 0;
-    font-weight: 600;
-  }
-
-  .fbco-total {
-    margin-top: 20px;
-    padding-top: 18px;
-    border-top: 1px solid var(--forest);
-  }
-
-  .fbco-total > span {
-    display: block;
-    font-size: 10px;
-  }
-
-  .fbco-total strong {
-    display: block;
-    margin-top: 5px;
-    font-size: 35px;
-    font-weight: 500;
-    letter-spacing: -.05em;
-    overflow-wrap: anywhere;
-  }
-
-  .fbco-details-layout {
-    display: grid;
-    grid-template-columns: minmax(0, .65fr) minmax(0, 1.35fr);
-    gap: clamp(30px, 5vw, 80px);
-    margin-top: clamp(40px, 6vw, 80px);
-  }
-
-  .fbco-guide {
-    align-self: start;
-    position: sticky;
-    top: 120px;
-  }
-
-  .fbco-guide h2 {
-    margin: 16px 0 32px;
-    font-size: clamp(35px, 3.7vw, 50px);
-    font-weight: 500;
-    line-height: 1.05;
-    letter-spacing: -.06em;
-  }
-
-  .fbco-steps {
-    display: grid;
-    gap: 0;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    border-top: 1px solid var(--line);
-  }
-
-  .fbco-steps li {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 17px 0;
-    border-bottom: 1px solid var(--line);
-    color: #6c7b71;
-    font-size: 15px;
-  }
-
-  .fbco-step-number {
-    display: grid;
-    place-items: center;
-    width: 34px;
-    height: 34px;
-    border: 1px solid var(--line);
-    border-radius: 50%;
-    font-size: 10px;
-  }
-
-  .fbco-steps .is-current {
-    color: var(--forest);
-    font-weight: 700;
-  }
-
-  .fbco-steps .is-current .fbco-step-number,
-  .fbco-steps .is-complete .fbco-step-number {
-    border-color: var(--forest);
-    background: var(--forest);
-    color: #fff;
-  }
-
-  .fbco-delivery-note {
-    display: flex;
-    align-items: flex-start;
-    gap: 13px;
-    margin-top: 28px;
-  }
-
-  .fbco-delivery-note svg {
-    flex-shrink: 0;
-    margin-top: 3px;
-  }
-
-  .fbco-delivery-note strong {
-    font-size: 12px;
-  }
-
-  .fbco-delivery-note p {
-    max-width: 260px;
-    margin: 5px 0 0;
-    font-size: 11px;
-    line-height: 1.8;
-    color: #516b62;
-  }
-
-  .fbco-form-panel {
-    min-width: 0;
-    border: 1px solid var(--forest);
-    background: var(--paper);
-    box-shadow: 9px 9px 0 rgba(23, 63, 54, .1);
-  }
-
-  .fbco-payment-notice {
-    display: flex;
-    align-items: flex-start;
-    gap: 13px;
-    padding: 20px 28px;
-    border-bottom: 1px solid var(--line);
-    background: #e9eddf;
-  }
-
-  .fbco-payment-notice svg {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  .fbco-payment-notice p {
-    margin: 0;
-    font-size: 11px;
-    line-height: 1.8;
-  }
-
-  .fbco-payment-notice strong {
-    display: block;
-    font-weight: 700;
-  }
-
-  .fbco-step-content {
-    padding: clamp(24px, 3.5vw, 45px);
-    animation: fbcoEnter .35s both;
-  }
-
-  .fbco-form-heading {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    margin-bottom: 30px;
-  }
-
-  .fbco-form-icon {
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    width: 46px;
-    height: 46px;
-    border: 1px solid var(--line);
-    background: var(--pistachio);
-  }
-
-  .fbco-form-heading h2 {
-    margin: 6px 0 0;
-    font-size: clamp(25px, 2.7vw, 36px);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.05em;
-  }
-
-  .fbco-form-heading h2:focus {
-    outline: none;
-  }
-
-  .fbco-fields {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 22px 18px;
-  }
-
-  .fbco-field {
-    min-width: 0;
-  }
-
-  .fbco-field-full {
-    grid-column: 1 / -1;
-  }
-
-  .fbco-field label {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 9px;
-    font-size: 11px;
-    font-weight: 700;
-  }
-
-  .fbco-field label span {
-    font-size: 9px;
-    font-weight: 400;
-    color: #516b62;
-  }
-
-  .fbco-field input {
-    width: 100%;
-    min-width: 0;
-    min-height: 52px;
-    padding: 13px 15px;
-    border: 1px solid var(--line);
-    border-radius: 0;
-    background: var(--bone);
-    color: var(--forest);
-    font-size: 16px;
-    transition: background .2s ease, border-color .2s ease;
-  }
-
-  .fbco-field input::placeholder {
-    color: #7a877c;
-    font-size: 13px;
-  }
-
-  .fbco-field input:focus {
-    border-color: var(--forest);
-    background: #fff;
-  }
-
-  .fbco-field input:read-only {
-    background: #e9eddf;
-    color: #516b62;
-  }
-
-  .fbco-form-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: 14px;
-    margin-top: 32px;
-    padding-top: 24px;
-    border-top: 1px solid var(--line);
-  }
-
-  .fbco-page .fbco-primary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    min-height: 54px;
-    padding: 16px 22px;
-    border: 1px solid var(--forest);
-    background: var(--forest);
-    color: white;
-    font-size: 12px;
-    font-weight: 700;
-    transition: background .25s ease, transform .25s ease;
-  }
-
-  .fbco-primary svg {
-    flex-shrink: 0;
-    transition: transform .25s ease;
-  }
-
-  .fbco-primary:hover {
-    background: var(--deep);
-    transform: translateY(-2px);
-  }
-
-  .fbco-primary:hover svg {
-    transform: translateX(4px);
-  }
-
-  .fbco-secondary {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    min-height: 44px;
-    padding: 10px 15px;
-    border: 0;
-    background: transparent;
-    color: var(--forest);
-    font-size: 12px;
-  }
-
-  .fbco-review-section {
-    padding-block: 20px;
-    border-top: 1px solid var(--line);
-  }
-
-  .fbco-review-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    margin-bottom: 10px;
-  }
-
-  .fbco-review-heading h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-  }
-
-  .fbco-review-heading button {
-    min-height: 44px;
-    padding: 8px 10px;
-    border: 0;
-    background: transparent;
-    color: var(--brass);
-    font-size: 12px;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
-
-  .fbco-review-section > p {
-    margin: 5px 0;
-    font-size: 13px;
-    color: #516b62;
-    overflow-wrap: anywhere;
-  }
-
-  .fbco-review-status {
-    display: flex;
-    align-items: flex-start;
-    gap: 15px;
-    margin-block: 12px 25px;
-    padding: 22px;
-    background: var(--pistachio);
-  }
-
-  .fbco-review-status svg {
-    flex-shrink: 0;
-    margin-top: 3px;
-  }
-
-  .fbco-review-status h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-  }
-
-  .fbco-review-status p {
-    margin: 8px 0 0;
-    font-size: 12px;
-    line-height: 1.8;
-  }
-
-  @keyframes fbcoEnter {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @media (max-width: 1100px) {
-    .fbco-order {
-      grid-template-columns: 180px minmax(0, 1fr) 200px;
-    }
-
-    .fbco-order-items {
-      grid-template-columns: minmax(0, 1fr);
-      padding: 24px;
-    }
-
-    .fbco-price-review {
-      padding: 20px;
-    }
-
-    .fbco-details-layout {
-      grid-template-columns: minmax(0, .6fr) minmax(0, 1.4fr);
-      gap: 30px;
-    }
-  }
-
-  @media (max-width: 800px) {
-    .fbco-header {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 23px;
-    }
-
-    .fbco-header > p {
-      max-width: 500px;
-    }
-
-    .fbco-order {
-      grid-template-columns: minmax(0, 1fr) 220px;
-    }
-
-    .fbco-order-intro {
-      grid-column: 1 / -1;
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px 18px;
-      padding: 20px;
-    }
-
-    .fbco-order-intro .fbco-overline {
-      margin: 0;
-    }
-
-    .fbco-order-intro h2 {
-      margin: 0;
-      font-size: 25px;
-    }
-
-    .fbco-order-intro a {
-      margin-left: auto;
-    }
-
-    .fbco-details-layout {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 28px;
-    }
-
-    .fbco-guide {
-      position: static;
-    }
-
-    .fbco-guide h2,
-    .fbco-guide > .fbco-overline {
-      display: none;
-    }
-
-    .fbco-steps {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      border: 0;
-      gap: 12px;
-    }
-
-    .fbco-steps li {
-      gap: 9px;
-      padding: 0 0 15px;
-      font-size: 12px;
-    }
-
-    .fbco-delivery-note {
-      margin-top: 18px;
-    }
-  }
-
-  @media (max-width: 520px) {
-    .fbco-header h1 {
-      font-size: clamp(43px, 12vw, 62px);
-    }
-
-    .fbco-header h1 span {
-      display: block;
-    }
-
-    .fbco-order {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .fbco-order-intro {
-      gap: 10px 14px;
-    }
-
-    .fbco-order-intro > svg {
-      display: none;
-    }
-
-    .fbco-order-intro .fbco-overline {
-      width: 100%;
-    }
-
-    .fbco-order-items {
-      padding: 22px;
-      gap: 22px;
-    }
-
-    .fbco-order-image {
-      width: 85px;
-      height: 105px;
-    }
-
-    .fbco-price-review {
-      padding: 22px;
-      border-left: 0;
-      border-top: 1px solid var(--line);
-      background: #e9eddf;
-    }
-
-    .fbco-total {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .fbco-total strong {
-      margin: 0;
-      font-size: 32px;
-    }
-
-    .fbco-steps {
-      gap: 8px;
-    }
-
-    .fbco-step-number {
-      width: 28px;
-      height: 28px;
-      font-size: 9px;
-      flex-shrink: 0;
-    }
-
-    .fbco-steps li {
-      gap: 6px;
-      font-size: 11px;
-    }
-
-    .fbco-payment-notice {
-      padding: 18px;
-    }
-
-    .fbco-step-content {
-      padding: 25px 20px;
-    }
-
-    .fbco-form-heading {
-      gap: 12px;
-    }
-
-    .fbco-form-icon {
-      width: 38px;
-      height: 38px;
-    }
-
-    .fbco-form-heading h2 {
-      font-size: 27px;
-    }
-
-    .fbco-fields {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 20px;
-    }
-
-    .fbco-form-actions .fbco-primary {
-      width: 100%;
-    }
-
-    .fbco-form-panel {
-      box-shadow: 6px 6px 0 rgba(23, 63, 54, .1);
-    }
-
-    .fbco-review-status {
-      padding: 18px;
-      gap: 12px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .fbco-page *,
-    .fbco-page *::before,
-    .fbco-page *::after {
-      animation: none !important;
-      transition: none !important;
-    }
-  }
-`;
 
 export default Checkout;

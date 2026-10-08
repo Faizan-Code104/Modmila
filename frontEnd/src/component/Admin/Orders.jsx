@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 import { API_BASE_URL } from "../../config";
-import { BUSINESS_INFO } from "../../storeInfo";
+import { BUSINESS_INFO, STORAGE_KEYS } from "../../storeInfo";
 
 const apiBase = String(API_BASE_URL || "").replace(/\/+$/, "");
 const API_URL = `${apiBase}/api/orders`;
@@ -101,7 +101,7 @@ const authHeaders = () => {
   let token;
 
   try {
-    token = localStorage.getItem("fablebelle-token");
+    token = localStorage.getItem(STORAGE_KEYS.token);
   } catch {
     throw new Error("Unable to access your login. Please sign in again.");
   }
@@ -115,6 +115,29 @@ const authHeaders = () => {
     Authorization: `Bearer ${token}`,
   };
 };
+
+/* Colour per fulfillment status (matches the dashboard) */
+const STATUS_STYLE = {
+  Pending: { dot: "#c9b28f", badge: "bg-sand/60 text-ink" },
+  Processing: { dot: "#8a5a5f", badge: "bg-wine-soft text-wine" },
+  Shipped: { dot: "#2b2523", badge: "bg-ink text-paper" },
+  Delivered: { dot: "#4f7a5a", badge: "bg-success/15 text-success" },
+  Cancelled: { dot: "#a33a3a", badge: "bg-danger/10 text-danger" },
+};
+
+const statusStyle = (status) =>
+  STATUS_STYLE[status] || { dot: "#b9b0a6", badge: "bg-linen text-muted" };
+
+const StatusBadge = ({ status }) => (
+  <span
+    className={`inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${statusStyle(status).badge}`}
+  >
+    <span className="size-1.5 rounded-full" style={{ background: statusStyle(status).dot }} />
+    {status}
+  </span>
+);
+
+const FLOW = ["Pending", "Processing", "Shipped", "Delivered"];
 
 const ItemImage = ({ image }) => {
   const value = typeof image === "string" ? image.trim() : "";
@@ -131,13 +154,14 @@ const ItemImage = ({ image }) => {
   }, [src]);
 
   return (
-    <div className="fborders-item-image">
+    <div className="grid h-[62px] w-[54px] shrink-0 place-items-center overflow-hidden bg-linen text-muted">
       {src && !failed ? (
         <img
           src={src}
           alt=""
           loading="lazy"
           onError={() => setFailed(true)}
+          className="size-full object-contain p-1"
         />
       ) : (
         <ImageOff size={20} aria-hidden="true" />
@@ -145,6 +169,11 @@ const ItemImage = ({ image }) => {
     </div>
   );
 };
+
+const eyebrowClass = "text-[10px] font-bold uppercase tracking-[0.2em] text-wine";
+const fieldClass =
+  "min-h-12 w-full min-w-0 border border-line bg-paper px-3 text-base text-ink outline-none transition-colors focus:border-ink sm:text-sm";
+
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -411,89 +440,125 @@ const Orders = () => {
     ),
   ];
 
-  return (
-    <main className="fborders">
-      <style>{styles}</style>
+  const drawerOpen = Boolean(selectedId);
 
-      <header className="fborders-heading">
+  /* drawer: Escape closes, page behind does not scroll */
+  useEffect(() => {
+    if (!drawerOpen) return undefined;
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event) => {
+      if (event.key === "Escape") closeOrder();
+    };
+    document.addEventListener("keydown", onKey);
+
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawerOpen]);
+
+  const statusCount = (status) =>
+    status === "All"
+      ? orders.length
+      : orders.filter((order) => orderStatus(order) === status).length;
+
+  const flowIndex = FLOW.indexOf(selectedStatus);
+
+  return (
+    <div className="min-w-0 font-sans text-ink">
+      {/* ============ Heading ============ */}
+      <header className="flex flex-col items-start justify-between gap-5 border-b border-line pb-6 sm:flex-row sm:items-end">
         <div>
-          <p className="fborders-eyebrow">
+          <p className={`${eyebrowClass} animate-rise`}>
             {BUSINESS_INFO.businessName} / Admin
           </p>
-          <h1>Order desk.</h1>
-          <p>Review purchases and manage fulfillment from one place.</p>
+          <h1 className="mt-2 font-serif text-[clamp(38px,5vw,64px)] leading-[0.95] tracking-[-0.03em] perspective-distant">
+            <span className="inline-block animate-fold-in [animation-delay:80ms]">Order</span>{" "}
+            <em className="inline-block animate-fold-in text-wine [animation-delay:200ms]">desk.</em>
+          </h1>
+          <p className="mt-3 animate-rise text-sm text-muted [animation-delay:260ms]">
+            Review purchases and manage fulfillment from one place.
+          </p>
         </div>
 
         <button
           type="button"
-          className="fborders-refresh"
           onClick={() => setRefreshCount((count) => count + 1)}
           disabled={loading || updating}
+          className="inline-flex min-h-12 w-full shrink-0 items-center justify-center gap-2.5 bg-ink px-5 text-xs font-semibold text-paper transition-colors hover:bg-wine disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
-          <RefreshCw
-            size={16}
-            className={loading ? "fborders-spin" : ""}
-            aria-hidden="true"
-          />
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} aria-hidden="true" />
           {loading ? "Loading…" : "Refresh orders"}
         </button>
       </header>
 
       {fetchError && (
-        <div className="fborders-error" role="alert">
+        <div className="mt-5 border border-danger/30 border-l-4 border-l-danger bg-danger/5 px-5 py-4 text-sm text-danger" role="alert">
           {fetchError}
-          {loaded && <p>The list shows the last successfully loaded data.</p>}
+          {loaded && <p className="mt-1.5 text-xs">The list shows the last successfully loaded data.</p>}
         </div>
       )}
 
-      <section className="fborders-summary" aria-label="Order totals">
-        {stats.map(([label, value]) => (
-          <div key={label}>
-            <span>{label}</span>
-            <strong>{loaded ? value.toLocaleString() : "—"}</strong>
-          </div>
-        ))}
+      {/* ============ Pipeline summary ============ */}
+      <section aria-label="Order totals" className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-4">
+          {stats.map(([label, value], index) => (
+            <div
+              key={label}
+              style={{ animationDelay: `${index * 90}ms` }}
+              className="group relative min-w-0 animate-rise bg-paper p-5 text-center"
+            >
+              <span className="relative mx-auto grid size-9 place-items-center rounded-full border border-line bg-chalk font-serif text-sm text-wine transition-transform duration-700 group-hover:[transform:rotateY(360deg)]">
+                {index + 1}
+              </span>
+              <strong className="mt-3 block font-serif text-4xl font-normal leading-none [overflow-wrap:anywhere]">
+                {loaded ? value.toLocaleString() : "—"}
+              </strong>
+              <span className="mt-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{label}</span>
+            </div>
+          ))}
+        </div>
 
-        <div className="fborders-summary-value">
-          <span>Non-cancelled order value</span>
-          <strong>{loaded ? money(summary.value) : "—"}</strong>
+        <div className="relative overflow-hidden bg-ink p-6 text-paper">
+          <span aria-hidden="true" className="absolute -right-10 -top-10 size-36 rotate-12 bg-wine/60" />
+          <span className="relative block text-[10px] font-bold uppercase tracking-[0.2em] text-[#d9a9ae]">
+            Non-cancelled order value
+          </span>
+          <strong className="relative mt-3 block font-serif text-[clamp(34px,4vw,48px)] font-normal leading-none [overflow-wrap:anywhere]">
+            {loaded ? money(summary.value) : "—"}
+          </strong>
         </div>
       </section>
 
-      <div className="fborders-tools">
-        <div className="fborders-search">
-          <Search size={18} aria-hidden="true" />
-          <label htmlFor="fborders-search" className="fborders-sr-only">
+      {/* ============ Tools ============ */}
+      <div className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+        <div className="flex min-w-0 items-center gap-3 border border-line bg-paper px-4 transition-colors focus-within:border-ink">
+          <Search size={18} aria-hidden="true" className="shrink-0 text-muted" />
+          <label htmlFor="orders-search" className="sr-only">
             Search by order number, customer or email
           </label>
           <input
-            id="fborders-search"
+            id="orders-search"
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Order number, customer or email…"
+            className="min-h-14 w-full min-w-0 bg-transparent text-base text-ink outline-none placeholder:text-sm placeholder:text-muted"
           />
         </div>
 
-        <div className="fborders-filter">
-          <label htmlFor="fborders-status-filter">Status</label>
+        <div className="flex flex-col justify-center border border-line bg-paper px-4 py-1.5 transition-colors focus-within:border-ink">
+          <label htmlFor="orders-sort" className="text-[10px] uppercase tracking-[0.16em] text-muted">
+            Sort by
+          </label>
           <select
-            id="fborders-status-filter"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            {filterOptions.map((status) => (
-              <option key={status}>{status}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="fborders-filter">
-          <label htmlFor="fborders-sort">Sort by</label>
-          <select
-            id="fborders-sort"
+            id="orders-sort"
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value)}
+            className="min-h-8 w-full bg-transparent text-base text-ink outline-none sm:text-sm"
           >
             <option value="Newest">Newest</option>
             <option value="Highest">Highest value</option>
@@ -503,7 +568,34 @@ const Orders = () => {
         </div>
       </div>
 
-      <div className="fborders-results">
+      {/* status chips (same filter as before, shown as tabs) */}
+      <div role="group" aria-label="Status" className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+        {filterOptions.map((status) => {
+          const active = statusFilter === status;
+
+          return (
+            <button
+              key={status}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setStatusFilter(status)}
+              className={`inline-flex min-h-10 shrink-0 items-center gap-2 border px-4 text-xs font-semibold transition-all duration-300 ${
+                active
+                  ? "border-ink bg-ink text-paper"
+                  : "border-line bg-paper text-muted hover:border-ink hover:text-ink"
+              }`}
+            >
+              {status !== "All" && (
+                <span className="size-2 rounded-full" style={{ background: statusStyle(status).dot }} />
+              )}
+              {status}
+              {loaded && <span className={`text-[10px] ${active ? "text-paper/60" : "text-muted/70"}`}>{statusCount(status)}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex min-h-14 items-center justify-between gap-4 text-xs text-muted">
         <span role="status" aria-live="polite">
           {loading
             ? "Loading orders…"
@@ -513,91 +605,135 @@ const Orders = () => {
         </span>
 
         {(searchTerm || statusFilter !== "All" || sortBy !== "Newest") && (
-          <button type="button" onClick={clearFilters}>
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-ink underline underline-offset-4 hover:text-wine"
+          >
+            <X size={14} aria-hidden="true" />
             Clear filters
           </button>
         )}
       </div>
 
-      <div className="fborders-workspace">
-        <section
-          className="fborders-list"
-          aria-label="Customer orders"
-          aria-busy={loading}
-        >
-          {loading && !loaded ? (
-            <div className="fborders-empty" role="status">
-              <Loader2 size={28} className="fborders-spin" aria-hidden="true" />
-              <p>Loading customer orders…</p>
-            </div>
-          ) : !loaded ? (
-            <div className="fborders-empty">
-              <p>Refresh to load your orders.</p>
-            </div>
-          ) : !filteredOrders.length ? (
-            <div className="fborders-empty">
-              <p>
-                {orders.length ? "No matching orders." : "No orders yet."}
-              </p>
-              {orders.length > 0 && (
-                <button type="button" onClick={clearFilters}>
-                  View all orders
-                </button>
-              )}
-            </div>
-          ) : (
-            filteredOrders.map((order) => {
+      {/* ============ Orders list ============ */}
+      <section aria-label="Customer orders" aria-busy={loading} className="min-w-0 border border-line bg-paper">
+        {/* desktop column labels */}
+        <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_130px_minmax(0,0.8fr)_120px] gap-5 border-b border-line bg-linen/50 px-6 py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-muted lg:grid">
+          <span>Order</span>
+          <span>Customer</span>
+          <span>Status</span>
+          <span className="text-right">Total</span>
+          <span className="sr-only">Actions</span>
+        </div>
+
+        {loading && !loaded ? (
+          <div className="flex min-h-64 flex-col items-center justify-center gap-3 p-8 text-center text-sm text-muted" role="status">
+            <Loader2 size={28} className="animate-spin text-wine" aria-hidden="true" />
+            <p>Loading customer orders…</p>
+          </div>
+        ) : !loaded ? (
+          <div className="flex min-h-64 items-center justify-center p-8 text-center text-sm text-muted">
+            <p>Refresh to load your orders.</p>
+          </div>
+        ) : !filteredOrders.length ? (
+          <div className="flex min-h-64 flex-col items-center justify-center gap-4 p-8 text-center text-sm text-muted">
+            <p>{orders.length ? "No matching orders." : "No orders yet."}</p>
+            {orders.length > 0 && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="min-h-11 bg-ink px-5 text-xs font-semibold text-paper transition-colors hover:bg-wine"
+              >
+                View all orders
+              </button>
+            )}
+          </div>
+        ) : (
+          <ul>
+            {filteredOrders.map((order, index) => {
               const orderId = getId(order);
+              const selected = selectedId === orderId;
 
               return (
-                <article
+                <li
                   key={orderId}
-                  className={`fborders-order ${
-                    selectedId === orderId ? "is-selected" : ""
+                  style={{ animationDelay: `${Math.min(index, 10) * 45}ms` }}
+                  className={`group relative grid animate-rise grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-b border-line px-5 py-4 transition-colors last:border-b-0 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_130px_minmax(0,0.8fr)_120px] lg:gap-5 ${
+                    selected ? "bg-wine-soft/60" : "hover:bg-chalk"
                   }`}
                 >
-                  <div className="fborders-order-top">
-                    <strong>{order.orderNumber || "Order"}</strong>
-                    <span className="fborders-badge">{orderStatus(order)}</span>
+                  <span
+                    aria-hidden="true"
+                    className={`absolute inset-y-0 left-0 w-[3px] origin-top bg-wine transition-transform duration-500 ${
+                      selected ? "scale-y-100" : "scale-y-0 group-hover:scale-y-100"
+                    }`}
+                  />
+
+                  <div className="min-w-0">
+                    <strong className="block text-sm font-semibold [overflow-wrap:anywhere]">{order.orderNumber || "Order"}</strong>
+                    <span className="text-[11px] text-muted">
+                      {itemCount(order)} units · {formatDate(order.createdAt)}
+                    </span>
                   </div>
 
-                  <h2>{customerName(order)}</h2>
-                  <p>{customerEmail(order) || "Email not provided"}</p>
-
-                  <div className="fborders-order-bottom">
-                    <div>
-                      <strong>{money(order.totalAmount)}</strong>
-                      <span>
-                        {itemCount(order)} units · {formatDate(order.createdAt)}
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => openOrder(order)}
-                      aria-label={`View ${order.orderNumber || "order"} details`}
-                      aria-pressed={selectedId === orderId}
-                    >
-                      Details
-                      <ArrowUpRight size={17} aria-hidden="true" />
-                    </button>
+                  <div className="justify-self-end lg:order-3 lg:justify-self-start">
+                    <StatusBadge status={orderStatus(order)} />
                   </div>
-                </article>
+
+                  <div className="min-w-0 lg:order-2">
+                    <h2 className="text-sm font-semibold [overflow-wrap:anywhere]">{customerName(order)}</h2>
+                    <p className="text-[11px] text-muted [overflow-wrap:anywhere]">{customerEmail(order) || "Email not provided"}</p>
+                  </div>
+
+                  <strong className="justify-self-end font-serif text-xl font-normal lg:order-4">
+                    {money(order.totalAmount)}
+                  </strong>
+
+                  <button
+                    type="button"
+                    onClick={() => openOrder(order)}
+                    aria-label={`View ${order.orderNumber || "order"} details`}
+                    aria-pressed={selected}
+                    className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 border border-line px-4 text-xs font-semibold text-ink transition-colors hover:border-ink hover:bg-ink hover:text-paper lg:order-5 lg:col-span-1"
+                  >
+                    Details
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                  </button>
+                </li>
               );
-            })
-          )}
-        </section>
+            })}
+          </ul>
+        )}
+      </section>
 
+      {/* ============ Detail drawer ============ */}
+      <button
+        type="button"
+        aria-label="Close order details"
+        tabIndex={drawerOpen ? 0 : -1}
+        onClick={closeOrder}
+        className={`fixed inset-0 z-[60] bg-ink/50 backdrop-blur-sm transition-opacity duration-300 ${
+          drawerOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+
+      <div className={`fixed inset-y-0 right-0 z-[70] w-full max-w-[520px] perspective-[1600px] ${drawerOpen ? "" : "pointer-events-none"}`}>
         <section
           ref={detailRef}
-          className="fborders-detail"
           tabIndex={-1}
-          aria-labelledby="fborders-detail-title"
+          aria-labelledby="orders-detail-title"
+          aria-hidden={!drawerOpen}
+          className={`flex h-full origin-right flex-col bg-paper shadow-[-30px_0_60px_-30px_rgba(0,0,0,0.5)] outline-none transition-all duration-500 ease-drape ${
+            drawerOpen
+              ? "visible [transform:rotateY(0deg)] opacity-100"
+              : "invisible [transform:rotateY(-35deg)_translateX(40%)] opacity-0"
+          }`}
         >
-          <div className="fborders-detail-heading">
-            <div>
-              <p className="fborders-eyebrow">Order details</p>
-              <h2 id="fborders-detail-title">
+          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-line bg-ink px-5 py-5 text-paper sm:px-6">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#d9a9ae]">Order details</p>
+              <h2 id="orders-detail-title" className="mt-1 truncate font-serif text-3xl">
                 {selectedOrder?.orderNumber || "Review an order"}
               </h2>
             </div>
@@ -607,671 +743,167 @@ const Orders = () => {
                 type="button"
                 onClick={closeOrder}
                 aria-label="Close order details"
+                className="grid size-11 shrink-0 place-items-center border border-paper/20 transition-colors hover:bg-paper hover:text-ink"
               >
                 <X size={19} aria-hidden="true" />
               </button>
             )}
           </div>
 
-          {!selectedOrder ? (
-            <div className="fborders-empty">
-              <p>
-                {selectedId
-                  ? "This order is no longer in the loaded list."
-                  : "Select Details on an order to review its items and shipping information."}
-              </p>
-            </div>
-          ) : (
-            <div className="fborders-detail-body">
-              <div className="fborders-detail-meta">
-                <span>{formatDate(selectedOrder.createdAt)}</span>
-                <span className="fborders-badge">{selectedStatus}</span>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            {!selectedOrder ? (
+              <div className="flex min-h-64 items-center justify-center p-8 text-center text-sm text-muted">
+                <p>
+                  {selectedId
+                    ? "This order is no longer in the loaded list."
+                    : "Select Details on an order to review its items and shipping information."}
+                </p>
               </div>
-
-              <form onSubmit={handleStatusUpdate} className="fborders-update">
-                <label htmlFor="fborders-update-status">Fulfillment status</label>
-
-                <div>
-                  <select
-                    id="fborders-update-status"
-                    value={draftStatus}
-                    onChange={(event) => setDraftStatus(event.target.value)}
-                    disabled={updating || loading}
-                  >
-                    {!STATUSES.includes(selectedStatus) && (
-                      <option value={selectedStatus}>{selectedStatus}</option>
-                    )}
-                    {STATUSES.map((status) => (
-                      <option key={status}>{status}</option>
-                    ))}
-                  </select>
-
-                  <button
-                    type="submit"
-                    disabled={
-                      updating ||
-                      loading ||
-                      draftStatus === selectedStatus ||
-                      !STATUSES.includes(draftStatus)
-                    }
-                  >
-                    {updating ? "Saving…" : "Save status"}
-                  </button>
+            ) : (
+              <div className="p-5 sm:p-6">
+                <div className="flex items-center justify-between gap-4 text-xs text-muted">
+                  <span>{formatDate(selectedOrder.createdAt)}</span>
+                  <StatusBadge status={selectedStatus} />
                 </div>
 
-                {updateError && (
-                  <p className="fborders-update-error" role="alert">
-                    {updateError}
+                {/* progress thread */}
+                {selectedStatus !== "Cancelled" && (
+                  <ol aria-hidden="true" className="relative mt-6 grid grid-cols-4">
+                    <span className="absolute left-[12.5%] right-[12.5%] top-[9px] h-0.5 bg-line" />
+                    <span
+                      className="absolute left-[12.5%] top-[9px] h-0.5 bg-wine transition-[width] duration-700 ease-soft"
+                      style={{ width: `${Math.max(0, flowIndex) * 25}%` }}
+                    />
+                    {FLOW.map((step, index) => {
+                      const done = flowIndex >= index;
+
+                      return (
+                        <li key={step} className="relative grid justify-items-center gap-2 text-center">
+                          <span
+                            className={`size-5 rounded-full border-2 transition-colors duration-500 ${
+                              done ? "border-wine bg-wine" : "border-line bg-paper"
+                            }`}
+                          />
+                          <span className={`text-[10px] font-semibold ${done ? "text-ink" : "text-muted"}`}>{step}</span>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
+
+                <form onSubmit={handleStatusUpdate} className="mt-6 border border-line bg-chalk p-4">
+                  <label htmlFor="orders-update-status" className="mb-2 block text-xs font-semibold">
+                    Fulfillment status
+                  </label>
+
+                  <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                    <select
+                      id="orders-update-status"
+                      value={draftStatus}
+                      onChange={(event) => setDraftStatus(event.target.value)}
+                      disabled={updating || loading}
+                      className={`${fieldClass} flex-1`}
+                    >
+                      {!STATUSES.includes(selectedStatus) && (
+                        <option value={selectedStatus}>{selectedStatus}</option>
+                      )}
+                      {STATUSES.map((status) => (
+                        <option key={status}>{status}</option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="submit"
+                      disabled={
+                        updating ||
+                        loading ||
+                        draftStatus === selectedStatus ||
+                        !STATUSES.includes(draftStatus)
+                      }
+                      className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 bg-ink px-5 text-xs font-semibold text-paper transition-colors hover:bg-wine disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {updating && <Loader2 size={15} className="animate-spin" aria-hidden="true" />}
+                      {updating ? "Saving…" : "Save status"}
+                    </button>
+                  </div>
+
+                  {updateError && (
+                    <p className="mt-3 text-xs text-danger" role="alert">
+                      {updateError}
+                    </p>
+                  )}
+
+                  <p className="text-xs text-success empty:hidden [&:not(:empty)]:mt-3" role="status" aria-live="polite">
+                    {notice}
                   </p>
-                )}
+                </form>
 
-                <p className="fborders-notice" role="status" aria-live="polite">
-                  {notice}
-                </p>
-              </form>
+                <div className="mt-2 grid gap-0 sm:grid-cols-2 sm:gap-6">
+                  <div className="border-b border-line py-5 sm:border-b-0">
+                    <h3 className={eyebrowClass}>Customer</h3>
+                    <p className="mt-2 text-sm font-semibold [overflow-wrap:anywhere]">{customerName(selectedOrder)}</p>
+                    {customerEmail(selectedOrder) && (
+                      <p className="text-sm text-muted [overflow-wrap:anywhere]">{customerEmail(selectedOrder)}</p>
+                    )}
+                    {selectedOrder.shippingAddress?.phone && (
+                      <p className="text-sm text-muted">{selectedOrder.shippingAddress.phone}</p>
+                    )}
+                  </div>
 
-              <div className="fborders-detail-section">
-                <h3>Customer</h3>
-                <p>{customerName(selectedOrder)}</p>
-                {customerEmail(selectedOrder) && (
-                  <p>{customerEmail(selectedOrder)}</p>
-                )}
-                {selectedOrder.shippingAddress?.phone && (
-                  <p>{selectedOrder.shippingAddress.phone}</p>
-                )}
+                  <div className="py-5">
+                    <h3 className={eyebrowClass}>Shipping address</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted [overflow-wrap:anywhere]">
+                      {shippingAddress(selectedOrder) || "Not provided"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-line pt-5">
+                  <h3 className={eyebrowClass}>Ordered items</h3>
+
+                  {!orderItems(selectedOrder).length ? (
+                    <p className="mt-3 text-sm text-muted">No item details provided.</p>
+                  ) : (
+                    <ul className="mt-2">
+                      {orderItems(selectedOrder).map((item, index) => (
+                        <li key={index} className="flex flex-wrap items-center gap-3 border-b border-dashed border-line py-3 last:border-b-0 min-[400px]:flex-nowrap">
+                          <ItemImage
+                            image={
+                              item.image ||
+                              item.product?.images?.[0] ||
+                              item.product?.image
+                            }
+                          />
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm font-semibold leading-snug [overflow-wrap:anywhere]">
+                              {item.name || item.product?.name || "Product"}
+                            </h4>
+                            <p className="mt-0.5 text-xs text-muted">
+                              {numeric(item.quantity)} × {money(item.price)}
+                            </p>
+                          </div>
+                          <strong className="ml-auto text-sm font-semibold">
+                            {money(numeric(item.price) * numeric(item.quantity))}
+                          </strong>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
+            )}
+          </div>
 
-              <div className="fborders-detail-section">
-                <h3>Shipping address</h3>
-                <p>{shippingAddress(selectedOrder) || "Not provided"}</p>
-              </div>
-
-              <div className="fborders-detail-section">
-                <h3>Ordered items</h3>
-
-                {!orderItems(selectedOrder).length ? (
-                  <p>No item details provided.</p>
-                ) : (
-                  orderItems(selectedOrder).map((item, index) => (
-                    <div className="fborders-item" key={index}>
-                      <ItemImage
-                        image={
-                          item.image ||
-                          item.product?.images?.[0] ||
-                          item.product?.image
-                        }
-                      />
-                      <div>
-                        <h4>{item.name || item.product?.name || "Product"}</h4>
-                        <p>
-                          {numeric(item.quantity)} × {money(item.price)}
-                        </p>
-                      </div>
-                      <strong>
-                        {money(numeric(item.price) * numeric(item.quantity))}
-                      </strong>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="fborders-total">
-                <span>Order total</span>
-                <strong>{money(selectedOrder.totalAmount)}</strong>
-              </div>
+          {selectedOrder && (
+            <div className="flex shrink-0 items-center justify-between gap-4 border-t border-ink bg-linen px-5 py-4 sm:px-6">
+              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">Order total</span>
+              <strong className="font-serif text-3xl font-normal">{money(selectedOrder.totalAmount)}</strong>
             </div>
           )}
         </section>
       </div>
-    </main>
+    </div>
   );
 };
-
-const styles = `
-  .fborders {
-    --ink: #173f36;
-    --deep: #102e28;
-    --paper: #fffdf5;
-    --bone: #f5f0e6;
-    --brass: #a56e4f;
-    --muted: #626e67;
-    --line: rgba(23,63,54,.17);
-    min-width: 0;
-    padding: clamp(18px,3vw,36px);
-    background: var(--bone);
-    color: var(--ink);
-    font-family: 'Onest', ui-sans-serif, system-ui, sans-serif;
-    line-height: 1.6;
-  }
-
-  .fborders *, .fborders *::before, .fborders *::after {
-    box-sizing: border-box;
-  }
-
-  .fborders button, .fborders input, .fborders select { font: inherit; }
-  .fborders button { cursor: pointer; }
-  .fborders button:disabled { opacity: .5; cursor: not-allowed; }
-
-  .fborders button:focus-visible,
-  .fborders input:focus-visible,
-  .fborders select:focus-visible,
-  .fborders-detail:focus-visible {
-    outline: 2px solid var(--brass);
-    outline-offset: 4px;
-  }
-
-  .fborders-heading {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 25px;
-    padding-bottom: 25px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fborders-eyebrow {
-    margin: 0;
-    color: var(--brass);
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-  }
-
-  .fborders-heading h1 {
-    margin: 10px 0 8px;
-    font-size: clamp(32px,4vw,44px);
-    font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: -.05em;
-  }
-
-  .fborders-heading > div > p:last-child {
-    margin: 0;
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .fborders-refresh {
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-    gap: 12px;
-    min-height: 46px;
-    padding: 12px 17px;
-    border: 1px solid var(--ink);
-    background: var(--ink);
-    color: #fff;
-    font-size: 11px;
-  }
-
-  .fborders-summary {
-    display: grid;
-    grid-template-columns: repeat(4,minmax(0,1fr)) minmax(0,1.5fr);
-    margin-block: 25px;
-    border: 1px solid var(--line);
-    background: var(--paper);
-  }
-
-  .fborders-summary > div {
-    min-width: 0;
-    padding: 22px;
-    border-right: 1px solid var(--line);
-  }
-
-  .fborders-summary > div:last-child { border-right: 0; }
-
-  .fborders-summary span {
-    display: block;
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fborders-summary strong {
-    display: block;
-    margin-top: 8px;
-    font-size: 27px;
-    font-weight: 500;
-    line-height: 1.2;
-    letter-spacing: -.035em;
-    overflow-wrap: anywhere;
-  }
-
-  .fborders-summary-value { background: #e9eddf; }
-
-  .fborders-tools {
-    display: grid;
-    grid-template-columns: minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);
-    gap: 12px;
-  }
-
-  .fborders-search {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-    padding-inline: 15px;
-    border: 1px solid var(--line);
-    background: var(--paper);
-  }
-
-  .fborders-search > svg { flex-shrink: 0; }
-
-  .fborders-search input {
-    width: 100%;
-    min-width: 0;
-    min-height: 56px;
-    border: 0;
-    background: transparent;
-    color: var(--ink);
-    font-size: 16px;
-  }
-
-  .fborders-search input::placeholder { font-size: 11px; color: var(--muted); }
-
-  .fborders-filter {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    padding: 7px 14px;
-    border: 1px solid var(--line);
-    background: var(--paper);
-  }
-
-  .fborders-filter label { color: var(--muted); font-size: 9px; }
-
-  .fborders-filter select {
-    width: 100%;
-    min-width: 0;
-    min-height: 32px;
-    border: 0;
-    background: transparent;
-    color: var(--ink);
-    font-size: 16px;
-  }
-
-  .fborders-results {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-    min-height: 60px;
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fborders-results button {
-    min-height: 44px;
-    border: 0;
-    background: transparent;
-    color: var(--ink);
-    font-size: 10px;
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
-
-  .fborders-workspace {
-    display: grid;
-    grid-template-columns: minmax(0,1.15fr) minmax(0,1fr);
-    align-items: start;
-    gap: 22px;
-    animation: fbordersEnter .4s ease both;
-  }
-
-  .fborders-list { min-width: 0; }
-
-  .fborders-order {
-    padding: 22px;
-    margin-bottom: 12px;
-    border: 1px solid var(--line);
-    background: var(--paper);
-    transition: border-color .2s ease;
-  }
-
-  .fborders-order.is-selected {
-    border-color: var(--ink);
-    box-shadow: inset 3px 0 0 var(--ink);
-  }
-
-  .fborders-order-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .fborders-order-top > strong {
-    font-size: 11px;
-    font-weight: 500;
-    overflow-wrap: anywhere;
-  }
-
-  .fborders-badge {
-    padding: 5px 9px;
-    background: var(--bone);
-    font-size: 9px;
-  }
-
-  .fborders-order h2 {
-    margin: 18px 0 5px;
-    font-size: 20px;
-    font-weight: 500;
-    letter-spacing: -.035em;
-    overflow-wrap: anywhere;
-  }
-
-  .fborders-order > p {
-    margin: 0;
-    color: var(--muted);
-    font-size: 11px;
-    overflow-wrap: anywhere;
-  }
-
-  .fborders-order-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 18px;
-    padding-top: 18px;
-    margin-top: 20px;
-    border-top: 1px solid var(--line);
-  }
-
-  .fborders-order-bottom strong {
-    display: block;
-    font-size: 18px;
-    font-weight: 500;
-  }
-
-  .fborders-order-bottom span {
-    display: block;
-    margin-top: 4px;
-    color: var(--muted);
-    font-size: 9px;
-  }
-
-  .fborders-order-bottom button {
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-    gap: 12px;
-    min-height: 44px;
-    padding: 10px 14px;
-    border: 1px solid var(--line);
-    background: transparent;
-    color: var(--ink);
-    font-size: 11px;
-  }
-
-  .fborders-order-bottom button:hover { border-color: var(--ink); }
-
-  .fborders-detail {
-    min-width: 0;
-    border: 1px solid var(--line);
-    background: var(--paper);
-    scroll-margin-top: 25px;
-  }
-
-  .fborders-detail-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    padding: 24px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fborders-detail-heading h2 {
-    margin: 9px 0 0;
-    font-size: 24px;
-    font-weight: 500;
-    letter-spacing: -.04em;
-    overflow-wrap: anywhere;
-  }
-
-  .fborders-detail-heading button {
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border: 1px solid var(--line);
-    background: transparent;
-    color: var(--ink);
-  }
-
-  .fborders-detail-body { padding: 24px; }
-
-  .fborders-detail-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fborders-update {
-    padding: 18px;
-    margin-top: 22px;
-    background: var(--bone);
-    border: 1px solid var(--line);
-  }
-
-  .fborders-update > label {
-    display: block;
-    margin-bottom: 10px;
-    font-size: 11px;
-    font-weight: 500;
-  }
-
-  .fborders-update > div {
-    display: flex;
-    gap: 10px;
-  }
-
-  .fborders-update select {
-    flex: 1;
-    min-width: 0;
-    min-height: 46px;
-    padding: 10px;
-    border: 1px solid var(--line);
-    background: var(--paper);
-    color: var(--ink);
-    font-size: 16px;
-  }
-
-  .fborders-update button {
-    min-height: 46px;
-    padding: 12px 14px;
-    border: 1px solid var(--ink);
-    background: var(--ink);
-    color: #fff;
-    font-size: 10px;
-  }
-
-  .fborders-update-error,
-  .fborders-notice {
-    margin: 12px 0 0;
-    font-size: 11px;
-    line-height: 1.8;
-  }
-
-  .fborders-update-error { color: #a13832; }
-  .fborders-notice:empty { margin: 0; }
-
-  .fborders-detail-section {
-    padding-block: 23px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fborders-detail-section h3 {
-    margin: 0 0 13px;
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .fborders-detail-section > p {
-    margin: 5px 0;
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.85;
-    overflow-wrap: anywhere;
-  }
-
-  .fborders-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding-block: 12px;
-  }
-
-  .fborders-item-image {
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    width: 54px;
-    height: 62px;
-    background: var(--bone);
-    color: var(--muted);
-  }
-
-  .fborders-item-image img {
-    width: 100%;
-    height: 100%;
-    padding: 5px;
-    object-fit: contain;
-  }
-
-  .fborders-item > div:nth-child(2) {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .fborders-item h4 {
-    margin: 0;
-    font-size: 11px;
-    font-weight: 500;
-    overflow-wrap: anywhere;
-  }
-
-  .fborders-item p {
-    margin: 5px 0 0;
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fborders-item > strong {
-    font-size: 11px;
-    font-weight: 500;
-    overflow-wrap: anywhere;
-  }
-
-  .fborders-total {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    padding-top: 23px;
-    font-size: 12px;
-  }
-
-  .fborders-total strong { font-size: 23px; font-weight: 500; }
-
-  .fborders-error {
-    margin-top: 20px;
-    padding: 16px 20px;
-    border: 1px solid #dfbdb5;
-    background: #fbefec;
-    color: #a13832;
-    font-size: 12px;
-  }
-
-  .fborders-error p { margin: 8px 0 0; font-size: 11px; }
-
-  .fborders-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    min-height: 250px;
-    padding: 30px;
-    color: var(--muted);
-    text-align: center;
-    font-size: 12px;
-  }
-
-  .fborders-empty button {
-    min-height: 44px;
-    padding: 10px 16px;
-    border: 1px solid var(--ink);
-    background: var(--ink);
-    color: #fff;
-    font-size: 11px;
-  }
-
-  .fborders-sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0,0,0,0);
-    white-space: nowrap;
-  }
-
-  .fborders-spin { animation: fbordersSpin 1s linear infinite; }
-
-  @keyframes fbordersSpin { to { transform: rotate(360deg); } }
-
-  @keyframes fbordersEnter {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 1100px) {
-    .fborders-summary { grid-template-columns: repeat(4,minmax(0,1fr)); }
-    .fborders-summary-value { grid-column: 1 / -1; border-top: 1px solid var(--line); }
-  }
-
-  @media (max-width: 1000px) {
-    .fborders-workspace { grid-template-columns: minmax(0,1fr); }
-    .fborders-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
-    .fborders-order { margin: 0; }
-    .fborders-list > .fborders-empty { grid-column: 1 / -1; }
-  }
-
-  @media (max-width: 720px) {
-    .fborders-heading { align-items: flex-start; flex-direction: column; }
-    .fborders-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
-    .fborders-summary > div { padding: 18px; }
-    .fborders-summary > div:nth-child(2) { border-right: 0; }
-    .fborders-summary > div:nth-child(3),
-    .fborders-summary > div:nth-child(4) { border-top: 1px solid var(--line); }
-    .fborders-summary > div:nth-child(4) { border-right: 0; }
-    .fborders-tools { grid-template-columns: repeat(2,minmax(0,1fr)); }
-    .fborders-search { grid-column: 1 / -1; }
-    .fborders-list { grid-template-columns: minmax(0,1fr); }
-    .fborders-detail-heading, .fborders-detail-body { padding: 20px; }
-  }
-
-  @media (max-width: 380px) {
-    .fborders-order { padding: 18px; }
-    .fborders-order-bottom { gap: 10px; flex-wrap: wrap; }
-    .fborders-update > div { flex-direction: column; }
-    .fborders-item { flex-wrap: wrap; }
-    .fborders-item > strong { margin-left: 66px; }
-    .fborders-summary strong { font-size: 24px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .fborders *, .fborders *::before, .fborders *::after {
-      animation: none !important;
-      transition: none !important;
-    }
-  }
-`;
 
 export default Orders;

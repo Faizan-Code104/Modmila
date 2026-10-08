@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import emailjs from "@emailjs/browser";
 import {
   AlertCircle,
+  ArrowDown,
   ArrowUpRight,
   CheckCircle2,
   Clock3,
@@ -21,6 +22,23 @@ const EMPTY_FORM = {
   message: "",
 };
 
+const MESSAGE_LIMIT = 2000;
+
+const inputClass =
+  "peer block min-h-[52px] w-full min-w-0 border-0 border-b border-line bg-transparent px-1 py-3 text-base text-ink outline-none transition-[border-color,background-color] duration-300 placeholder:text-[13px] placeholder:text-muted focus:border-wine focus:bg-wine-soft/40";
+
+const FieldLabel = ({ htmlFor, number, children }) => (
+  <label
+    htmlFor={htmlFor}
+    className="mb-2 flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-[0.14em]"
+  >
+    <span className="font-serif text-sm font-normal normal-case tracking-normal text-wine">
+      {number}
+    </span>
+    {children}
+  </label>
+);
+
 const Contact = () => {
   const [formData, setFormData] = useState({ ...EMPTY_FORM });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,10 +46,7 @@ const Contact = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const sendingRef = useRef(false);
 
-  const supportTime = [
-    BUSINESS_INFO.supportHours,
-    BUSINESS_INFO.timeZone,
-  ]
+  const supportTime = [BUSINESS_INFO.supportHours, BUSINESS_INFO.timeZone]
     .filter(Boolean)
     .join(" ");
 
@@ -68,10 +83,7 @@ const Contact = () => {
     if (!event.currentTarget.reportValidity()) return;
 
     const values = Object.fromEntries(
-      Object.entries(formData).map(([key, value]) => [
-        key,
-        value.trim(),
-      ])
+      Object.entries(formData).map(([key, value]) => [key, value.trim()]),
     );
 
     if (Object.values(values).some((value) => !value)) {
@@ -86,8 +98,8 @@ const Contact = () => {
     if (!serviceId || !templateId || !publicKey) {
       setErrorMessage(
         BUSINESS_INFO.email || BUSINESS_INFO.phoneDisplay
-          ? "The message form is currently unavailable. Please use the contact details below."
-          : "The message form is currently unavailable. Please try again later."
+          ? "The message form is currently unavailable. Please use the contact details on this page."
+          : "The message form is currently unavailable. Please try again later.",
       );
       return;
     }
@@ -105,18 +117,18 @@ const Contact = () => {
           subject: values.subject,
           message: values.message,
         },
-        { publicKey }
+        { publicKey },
       );
 
       setSuccessMessage(
-        "Your message has been sent. Our support team will get back to you as soon as possible."
+        "Your message has been sent. Our support team will get back to you as soon as possible.",
       );
       setFormData({ ...EMPTY_FORM });
     } catch {
       setErrorMessage(
         BUSINESS_INFO.email
           ? "We couldn't send your message. Please try again or email us directly."
-          : "We couldn't send your message. Please try again."
+          : "We couldn't send your message. Please try again.",
       );
     } finally {
       sendingRef.current = false;
@@ -124,822 +136,356 @@ const Contact = () => {
     }
   };
 
+  const contactRows = [
+    {
+      Icon: Mail,
+      title: "Email us",
+      value: BUSINESS_INFO.email,
+      href: BUSINESS_INFO.email ? `mailto:${BUSINESS_INFO.email}` : "",
+      note: "We usually respond within 24 hours during business days.",
+    },
+    {
+      Icon: Phone,
+      title: "Give us a call",
+      value: BUSINESS_INFO.phoneDisplay && phoneHref ? BUSINESS_INFO.phoneDisplay : "",
+      href: BUSINESS_INFO.phoneDisplay && phoneHref ? `tel:${phoneHref}` : "",
+      note: "Available during our business hours.",
+    },
+    {
+      Icon: Clock3,
+      title: "Our hours",
+      value: BUSINESS_INFO.businessDays,
+      note: supportTime,
+    },
+    {
+      Icon: MapPin,
+      title: "Business location",
+      address: addressLines,
+    },
+  ];
+
+  const messageProgress = Math.min(
+    100,
+    (formData.message.length / MESSAGE_LIMIT) * 100,
+  );
+
   return (
-    <main className="fbct-page">
-      <style>{contactStyles}</style>
-
-      <div className="fbct-container">
-        <header className="fbct-header">
-          <p className="fbct-overline">
-            {BUSINESS_INFO.businessName} / The care desk
-          </p>
-
-          <h1>
-            A question?
-            <span>Let's talk.</span>
-          </h1>
-
-          <p className="fbct-intro">
-            A little help with your order, a detail about a bag,
-            or something else on your mind. We're here to listen.
-          </p>
-
-          <a href="#fbct-message-form" className="fbct-jump">
-            Write us a note
-            <ArrowUpRight size={18} />
-          </a>
-        </header>
-
+    <div className="min-w-0 overflow-x-clip bg-chalk text-ink">
+      <div className="grid lg:min-h-[calc(100dvh-120px)] lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        {/* ============ Care desk (dark panel) ============ */}
         <section
-          className="fbct-message-board"
-          aria-labelledby="fbct-form-title"
+          aria-labelledby="contact-title"
+          className="relative overflow-hidden bg-ink px-5 pb-14 pt-12 text-paper sm:px-8 sm:pt-16 lg:px-[clamp(40px,5vw,82px)] lg:py-20"
         >
-          <div className="fbct-board-top">
-            <div>
-              <p className="fbct-overline">A note to our team</p>
-              <h2 id="fbct-form-title">How can we help?</h2>
-            </div>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-40 -top-40 size-[420px] animate-[spin_50s_linear_infinite] rounded-full border border-dashed border-sand/15"
+          />
 
-            <span className="fbct-mail-mark" aria-hidden="true">
-              <Mail size={32} strokeWidth={1.1} />
-            </span>
-          </div>
+          <div className="relative lg:sticky lg:top-32">
+            <p className="flex animate-rise items-center gap-3 text-[10px] font-bold uppercase tracking-[0.2em] text-[#d9a9ae] sm:text-[11px]">
+              <span className="h-px w-7 bg-[#d9a9ae]" aria-hidden="true" />
+              {BUSINESS_INFO.businessName} / The care desk
+            </p>
 
-          <form
-            id="fbct-message-form"
-            onSubmit={handleSubmit}
-            aria-busy={isSubmitting}
-          >
-            <fieldset disabled={isSubmitting}>
-              <legend className="fbct-sr-only">
-                Your contact details and message
-              </legend>
+            <h1
+              id="contact-title"
+              className="mt-7 font-serif text-[clamp(52px,6.6vw,96px)] leading-[0.95] tracking-[-0.04em] perspective-distant"
+            >
+              <span className="block animate-fold-in [animation-delay:100ms]">
+                A question?
+              </span>
+              <em className="block animate-fold-in text-[#d9a9ae] [animation-delay:260ms]">
+                Let&apos;s talk.
+              </em>
+            </h1>
 
-              <div className="fbct-fields">
-                <div className="fbct-field">
-                  <label htmlFor="fbct-name">
-                    <span>01</span>
-                    Your name
-                  </label>
-                  <input
-                    id="fbct-name"
-                    name="name"
-                    type="text"
-                    autoComplete="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    maxLength={80}
-                    placeholder="Full name"
-                    required
-                  />
-                </div>
+            <p className="mt-6 max-w-[420px] animate-rise text-[15px] leading-relaxed text-paper/75 [animation-delay:400ms]">
+              A little help with your order, a detail about a product, or
+              something else on your mind. We&apos;re here to listen.
+            </p>
 
-                <div className="fbct-field">
-                  <label htmlFor="fbct-email">
-                    <span>02</span>
-                    Email address
-                  </label>
-                  <input
-                    id="fbct-email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    maxLength={120}
-                    placeholder="you@example.com"
-                    required
-                  />
-                </div>
+            <a
+              href="#contact-message-form"
+              className="group mt-6 inline-flex min-h-11 animate-rise items-center gap-4 border-b border-paper/60 text-[13px] font-bold [animation-delay:480ms] lg:hidden"
+            >
+              Write us a note
+              <ArrowDown
+                size={16}
+                aria-hidden="true"
+                className="transition-transform duration-300 group-hover:translate-y-1"
+              />
+            </a>
 
-                <div className="fbct-field fbct-field-full">
-                  <label htmlFor="fbct-subject">
-                    <span>03</span>
-                    What's it about?
-                  </label>
-                  <input
-                    id="fbct-subject"
-                    name="subject"
-                    type="text"
-                    value={formData.subject}
-                    onChange={handleChange}
-                    maxLength={120}
-                    placeholder="An order, a product, or a general question"
-                    required
-                  />
-                </div>
+            {/* Contact rows */}
+            <ul className="mt-10 border-t border-paper/20 perspective-distant sm:mt-12">
+              {contactRows.map(({ Icon, title, value, href, note, address }, index) => (
+                <li
+                  key={title}
+                  style={{ animationDelay: `${520 + index * 110}ms` }}
+                  className="group grid animate-fold-in grid-cols-[44px_minmax(0,1fr)] gap-4 perspective-distant border-b border-paper/20 py-5"
+                >
+                  <span className="grid size-11 place-items-center rounded-full border border-paper/30 text-[#d9a9ae] transition-all duration-700 ease-soft transform-3d group-hover:rotate-y-180 group-hover:border-[#d9a9ae] group-hover:bg-[#d9a9ae] group-hover:text-ink">
+                    <Icon size={17} strokeWidth={1.4} aria-hidden="true" />
+                  </span>
 
-                <div className="fbct-field fbct-field-full">
-                  <div className="fbct-message-label">
-                    <label htmlFor="fbct-message">
-                      <span>04</span>
-                      Your message
-                    </label>
-                    <span id="fbct-message-count">
-                      {formData.message.length} / 2000
-                    </span>
+                  <div className="min-w-0">
+                    <h2 className="text-[10px] font-bold uppercase tracking-[0.2em] text-paper/60">
+                      {title}
+                    </h2>
+
+                    {value &&
+                      (href ? (
+                        <a
+                          href={href}
+                          className="mt-1 inline-flex min-h-8 items-center gap-2 break-all font-serif text-xl transition-colors hover:text-[#d9a9ae] sm:text-2xl"
+                        >
+                          {value}
+                          <ArrowUpRight
+                            size={15}
+                            aria-hidden="true"
+                            className="shrink-0 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                          />
+                        </a>
+                      ) : (
+                        <strong className="mt-1 block font-serif text-xl font-normal sm:text-2xl">
+                          {value}
+                        </strong>
+                      ))}
+
+                    {address && address.length > 0 && (
+                      <address className="mt-1 font-serif text-lg not-italic leading-snug sm:text-xl">
+                        {address.map((line, lineIndex) => (
+                          <React.Fragment key={`${lineIndex}-${line}`}>
+                            {lineIndex > 0 && <br />}
+                            {line}
+                          </React.Fragment>
+                        ))}
+                      </address>
+                    )}
+
+                    {note && (
+                      <p className="mt-1 text-xs leading-relaxed text-paper/60">
+                        {note}
+                      </p>
+                    )}
                   </div>
-
-                  <textarea
-                    id="fbct-message"
-                    name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    maxLength={2000}
-                    placeholder="Tell us a little more..."
-                    rows={6}
-                    required
-                    aria-describedby="fbct-message-count"
-                  />
-                </div>
-              </div>
-            </fieldset>
-
-            {successMessage && (
-              <div className="fbct-feedback is-success" role="status">
-                <CheckCircle2 size={20} />
-                <p>{successMessage}</p>
-              </div>
-            )}
-
-            {errorMessage && (
-              <div className="fbct-feedback is-error" role="alert">
-                <AlertCircle size={20} />
-                <p>{errorMessage}</p>
-              </div>
-            )}
-
-            <div className="fbct-form-bottom">
-              <p>
-                Include your order number if your question
-                is about an existing order.
-              </p>
-
-              <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Sending your note…" : "Send your note"}
-                {isSubmitting ? (
-                  <Loader2 size={18} className="fbct-spinner" />
-                ) : (
-                  <Send size={18} strokeWidth={1.4} />
-                )}
-              </button>
-            </div>
-          </form>
-
-          <div className="fbct-board-signature">
-            <span>A little care goes a long way.</span>
-            <strong>{BUSINESS_INFO.businessName}</strong>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
+        {/* ============ Letter (form) ============ */}
         <section
-          className="fbct-contact-strip"
-          aria-labelledby="fbct-contact-title"
+          aria-labelledby="contact-form-title"
+          className="relative px-4 py-12 sm:px-8 sm:py-16 lg:px-[clamp(32px,4.5vw,72px)] lg:py-20"
         >
-          <div className="fbct-strip-heading">
-            <p className="fbct-overline">Prefer another way?</p>
-            <h2 id="fbct-contact-title">Stay in touch.</h2>
-          </div>
+          <div className="mx-auto max-w-[720px] perspective-[1600px]">
+            <div className="relative origin-top animate-fold-in bg-paper shadow-[0_40px_80px_-50px_rgba(36,34,35,0.7)] [animation-delay:250ms]">
+              {/* stitched border */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-3 border border-dashed border-line"
+              />
 
-          <div className="fbct-contact-grid">
-            <div className="fbct-contact-cell">
-              <Mail size={21} strokeWidth={1.3} />
-              <h3>Email us</h3>
+              {/* Letter top */}
+              <div className="relative flex items-start justify-between gap-6 px-6 pb-6 pt-9 sm:px-10 sm:pt-12">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wine">
+                    A note to our team
+                  </p>
+                  <h2
+                    id="contact-form-title"
+                    className="mt-3 font-serif text-[clamp(34px,4vw,52px)] leading-[1.02]"
+                  >
+                    How can we <em>help?</em>
+                  </h2>
+                </div>
 
-              {BUSINESS_INFO.email && (
-                <a href={`mailto:${BUSINESS_INFO.email}`}>
-                  {BUSINESS_INFO.email}
-                  <ArrowUpRight size={15} />
-                </a>
-              )}
+                {/* Postage stamp */}
+                <span
+                  aria-hidden="true"
+                  className="group relative grid size-16 shrink-0 rotate-6 place-items-center border-2 border-dashed border-wine/50 bg-wine-soft text-wine transition-transform duration-700 ease-soft hover:rotate-0 sm:size-20 perspective-distant"
+                >
+                  <span className="grid place-items-center transition-transform duration-700 transform-3d group-hover:rotate-y-180">
+                    <Mail size={26} strokeWidth={1.2} />
+                  </span>
+                  <span className="absolute -bottom-2 -right-2 bg-paper px-1 text-[8px] font-bold uppercase tracking-[0.16em]">
+                    MM
+                  </span>
+                </span>
+              </div>
 
-              <p>
-                We usually respond within 24 hours
-                during business days.
-              </p>
-            </div>
+              <form
+                id="contact-message-form"
+                onSubmit={handleSubmit}
+                aria-busy={isSubmitting}
+                className="relative scroll-mt-28 px-6 pb-8 sm:px-10 sm:pb-10"
+              >
+                <fieldset
+                  disabled={isSubmitting}
+                  className="m-0 min-w-0 border-0 p-0 transition-opacity disabled:opacity-60"
+                >
+                  <legend className="sr-only">
+                    Your contact details and message
+                  </legend>
 
-            <div className="fbct-contact-cell">
-              <Phone size={21} strokeWidth={1.3} />
-              <h3>Give us a call</h3>
+                  <div className="grid gap-7 sm:grid-cols-2 sm:gap-x-8">
+                    <div className="min-w-0">
+                      <FieldLabel htmlFor="contact-name" number="01">
+                        Your name
+                      </FieldLabel>
+                      <input
+                        id="contact-name"
+                        name="name"
+                        type="text"
+                        autoComplete="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        maxLength={80}
+                        placeholder="Full name"
+                        required
+                        className={inputClass}
+                      />
+                    </div>
 
-              {BUSINESS_INFO.phoneDisplay && phoneHref && (
-                <a href={`tel:${phoneHref}`}>
-                  {BUSINESS_INFO.phoneDisplay}
-                  <ArrowUpRight size={15} />
-                </a>
-              )}
+                    <div className="min-w-0">
+                      <FieldLabel htmlFor="contact-email" number="02">
+                        Email address
+                      </FieldLabel>
+                      <input
+                        id="contact-email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        maxLength={120}
+                        placeholder="you@example.com"
+                        required
+                        className={inputClass}
+                      />
+                    </div>
 
-              <p>Available during our business hours.</p>
-            </div>
+                    <div className="min-w-0 sm:col-span-2">
+                      <FieldLabel htmlFor="contact-subject" number="03">
+                        What&apos;s it about?
+                      </FieldLabel>
+                      <input
+                        id="contact-subject"
+                        name="subject"
+                        type="text"
+                        value={formData.subject}
+                        onChange={handleChange}
+                        maxLength={120}
+                        placeholder="An order, a product, or a general question"
+                        required
+                        className={inputClass}
+                      />
+                    </div>
 
-            <div className="fbct-contact-cell">
-              <Clock3 size={21} strokeWidth={1.3} />
-              <h3>Our hours</h3>
+                    <div className="min-w-0 sm:col-span-2">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <FieldLabel htmlFor="contact-message" number="04">
+                          Your message
+                        </FieldLabel>
+                        <span
+                          id="contact-message-count"
+                          className="whitespace-nowrap text-[10px] text-muted"
+                        >
+                          {formData.message.length} / {MESSAGE_LIMIT}
+                        </span>
+                      </div>
 
-              {BUSINESS_INFO.businessDays && (
-                <strong>{BUSINESS_INFO.businessDays}</strong>
-              )}
+                      <textarea
+                        id="contact-message"
+                        name="message"
+                        value={formData.message}
+                        onChange={handleChange}
+                        maxLength={MESSAGE_LIMIT}
+                        placeholder="Tell us a little more..."
+                        rows={6}
+                        required
+                        aria-describedby="contact-message-count"
+                        className={`${inputClass} min-h-[170px] resize-y leading-[1.8]`}
+                      />
+                      <span aria-hidden="true" className="block h-0.5 bg-linen">
+                        <span
+                          style={{ width: `${messageProgress}%` }}
+                          className="block h-full bg-wine transition-[width] duration-300"
+                        />
+                      </span>
+                    </div>
+                  </div>
+                </fieldset>
 
-              {supportTime && <p>{supportTime}</p>}
-            </div>
+                {successMessage && (
+                  <div
+                    role="status"
+                    className="mt-7 flex animate-flip-up items-start gap-3 border border-success/40 bg-success/10 p-4 text-success"
+                  >
+                    <CheckCircle2 size={20} className="mt-0.5 shrink-0 animate-scale-in" />
+                    <p className="text-[13px] leading-relaxed">{successMessage}</p>
+                  </div>
+                )}
 
-            <div className="fbct-contact-cell">
-              <MapPin size={21} strokeWidth={1.3} />
-              <h3>Business location</h3>
+                {errorMessage && (
+                  <div
+                    role="alert"
+                    className="mt-7 flex animate-flip-up items-start gap-3 border border-danger/40 bg-danger/10 p-4 text-danger"
+                  >
+                    <AlertCircle size={20} className="mt-0.5 shrink-0" />
+                    <p className="text-[13px] leading-relaxed">{errorMessage}</p>
+                  </div>
+                )}
 
-              {addressLines.length > 0 && (
-                <address>
-                  {addressLines.map((line, index) => (
-                    <React.Fragment key={`${index}-${line}`}>
-                      {index > 0 && <br />}
-                      {line}
-                    </React.Fragment>
-                  ))}
-                </address>
-              )}
+                <div className="mt-8 flex flex-col items-stretch gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="max-w-[290px] text-[11px] leading-relaxed text-muted">
+                    Include your order number if your question is about an
+                    existing order.
+                  </p>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="group relative flex min-h-14 items-center justify-between gap-10 overflow-hidden bg-wine px-6 py-4 text-[13px] font-bold text-paper transition-colors duration-300 hover:bg-wine-dark disabled:cursor-wait disabled:opacity-70"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-paper/15 transition-transform duration-700 group-hover:translate-x-[420%]"
+                    />
+                    <span className="relative">
+                      {isSubmitting ? "Sending your note…" : "Send your note"}
+                    </span>
+                    {isSubmitting ? (
+                      <Loader2 size={18} className="relative animate-spin" />
+                    ) : (
+                      <Send
+                        size={18}
+                        strokeWidth={1.5}
+                        className="relative transition-transform duration-500 group-hover:-translate-y-1 group-hover:translate-x-1.5 group-hover:-rotate-12"
+                      />
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              {/* Signature */}
+              <div className="relative flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-line px-6 py-5 sm:px-10">
+                <span className="text-[11px] text-muted">
+                  A little care goes a long way.
+                </span>
+                <strong className="font-serif text-2xl font-normal italic text-wine">
+                  {BUSINESS_INFO.businessName}
+                </strong>
+              </div>
             </div>
           </div>
         </section>
       </div>
-    </main>
+    </div>
   );
 };
-
-const contactStyles = `
-  .fbct-page {
-    --forest: #173f36;
-    --deep: #102e28;
-    --pistachio: #d7e5a5;
-    --bone: #f5f0e6;
-    --paper: #fffdf5;
-    --brass: #a56e4f;
-    --line: rgba(23, 63, 54, .24);
-    min-height: 100vh;
-    padding-block: clamp(40px, 6vw, 85px)
-      clamp(50px, 7vw, 100px);
-    background: var(--bone);
-    color: var(--forest);
-    font-family: 'Onest', ui-sans-serif, system-ui,
-      -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    line-height: 1.5;
-  }
-
-  .fbct-page *,
-  .fbct-page *::before,
-  .fbct-page *::after {
-    box-sizing: border-box;
-  }
-
-  .fbct-page a {
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .fbct-page input,
-  .fbct-page textarea,
-  .fbct-page button {
-    font: inherit;
-  }
-
-  .fbct-page a:focus-visible,
-  .fbct-page button:focus-visible,
-  .fbct-page input:focus-visible,
-  .fbct-page textarea:focus-visible {
-    outline: 3px solid var(--brass);
-    outline-offset: 5px;
-  }
-
-  .fbct-container {
-    width: min(100%, 1450px);
-    margin-inline: auto;
-    padding-inline: clamp(20px, 4.2vw, 70px);
-  }
-
-  .fbct-overline {
-    margin: 0;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .13em;
-    text-transform: uppercase;
-  }
-
-  .fbct-header {
-    max-width: 850px;
-    margin-inline: auto;
-    margin-bottom: clamp(40px, 5vw, 70px);
-    text-align: center;
-    animation: fbctEnter .7s both;
-  }
-
-  .fbct-header h1 {
-    margin: 20px 0 0;
-    font-size: clamp(55px, 8.5vw, 120px);
-    font-weight: 500;
-    line-height: .98;
-    letter-spacing: -.075em;
-  }
-
-  .fbct-header h1 span {
-    display: block;
-    color: var(--brass);
-  }
-
-  .fbct-intro {
-    max-width: 450px;
-    margin: 25px auto 15px;
-    font-size: 15px;
-    line-height: 1.8;
-  }
-
-  .fbct-jump {
-    display: inline-flex;
-    align-items: center;
-    gap: 20px;
-    min-height: 44px;
-    border-bottom: 1px solid var(--forest);
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .fbct-jump svg {
-    transition: transform .25s ease;
-  }
-
-  .fbct-jump:hover svg {
-    transform: translate(3px, -3px);
-  }
-
-  .fbct-message-board {
-    width: min(100%, 960px);
-    margin-inline: auto;
-    border: 1px solid var(--forest);
-    background: var(--paper);
-    box-shadow: 12px 12px 0 rgba(23, 63, 54, .1);
-    animation: fbctEnter .7s .1s both;
-  }
-
-  .fbct-board-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 25px;
-    padding: 30px clamp(24px, 4vw, 55px);
-    border-bottom: 1px solid var(--forest);
-    background: var(--pistachio);
-  }
-
-  .fbct-board-top h2 {
-    margin: 10px 0 0;
-    font-size: clamp(32px, 4vw, 47px);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.055em;
-  }
-
-  .fbct-mail-mark {
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    width: 76px;
-    height: 76px;
-    border: 1px solid var(--forest);
-    border-radius: 50%;
-    transform: rotate(-10deg);
-    transition: transform .3s ease;
-  }
-
-  .fbct-message-board:hover .fbct-mail-mark {
-    transform: rotate(0);
-  }
-
-  .fbct-message-board form {
-    padding: clamp(25px, 4vw, 55px);
-    scroll-margin-top: 110px;
-  }
-
-  .fbct-message-board fieldset {
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-    border: 0;
-  }
-
-  .fbct-message-board fieldset:disabled {
-    opacity: .65;
-  }
-
-  .fbct-fields {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 32px 30px;
-  }
-
-  .fbct-field {
-    min-width: 0;
-  }
-
-  .fbct-field-full {
-    grid-column: 1 / -1;
-  }
-
-  .fbct-field label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .fbct-field label > span {
-    color: var(--brass);
-    font-size: 10px;
-    font-weight: 500;
-  }
-
-  .fbct-field input,
-  .fbct-field textarea {
-    display: block;
-    width: 100%;
-    min-width: 0;
-    min-height: 52px;
-    padding: 13px 4px;
-    border: 0;
-    border-bottom: 1px solid var(--line);
-    border-radius: 0;
-    background: transparent;
-    color: var(--forest);
-    font-size: 16px;
-    transition: border-color .25s ease, background .25s ease;
-  }
-
-  .fbct-field input::placeholder,
-  .fbct-field textarea::placeholder {
-    color: #7b867b;
-    font-size: 13px;
-  }
-
-  .fbct-field input:focus,
-  .fbct-field textarea:focus {
-    border-bottom-color: var(--forest);
-    background: #f5f7ed;
-  }
-
-  .fbct-field textarea {
-    min-height: 170px;
-    resize: vertical;
-    line-height: 1.8;
-  }
-
-  .fbct-message-label {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-  }
-
-  .fbct-message-label > span {
-    color: #516b62;
-    font-size: 10px;
-    white-space: nowrap;
-  }
-
-  .fbct-form-bottom {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 25px;
-    margin-top: 30px;
-  }
-
-  .fbct-form-bottom > p {
-    max-width: 290px;
-    margin: 0;
-    color: #516b62;
-    font-size: 11px;
-    line-height: 1.8;
-  }
-
-  .fbct-form-bottom button {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 35px;
-    min-height: 56px;
-    padding: 16px 23px;
-    border: 1px solid var(--forest);
-    background: var(--forest);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background .25s ease, transform .25s ease;
-  }
-
-  .fbct-form-bottom button:hover:not(:disabled) {
-    background: var(--deep);
-    transform: translateY(-2px);
-  }
-
-  .fbct-form-bottom button:disabled {
-    opacity: .6;
-    cursor: wait;
-  }
-
-  .fbct-form-bottom button svg {
-    flex-shrink: 0;
-  }
-
-  .fbct-feedback {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    margin-top: 24px;
-    padding: 18px;
-    border: 1px solid;
-  }
-
-  .fbct-feedback svg {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  .fbct-feedback p {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.7;
-  }
-
-  .fbct-feedback.is-success {
-    border-color: #b2c7ad;
-    background: #eaf2e5;
-    color: #245333;
-  }
-
-  .fbct-feedback.is-error {
-    border-color: #dfb5a9;
-    background: #faeee8;
-    color: #8c382b;
-  }
-
-  .fbct-board-signature {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 20px clamp(24px, 4vw, 55px);
-    border-top: 1px solid var(--line);
-    background: #edf0e4;
-  }
-
-  .fbct-board-signature > span {
-    font-size: 11px;
-  }
-
-  .fbct-board-signature strong {
-    font-size: 22px;
-    font-weight: 500;
-    letter-spacing: -.06em;
-  }
-
-  .fbct-contact-strip {
-    margin-top: clamp(65px, 8vw, 110px);
-  }
-
-  .fbct-strip-heading {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-bottom: 24px;
-  }
-
-  .fbct-strip-heading h2 {
-    margin: 0;
-    font-size: 42px;
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.055em;
-  }
-
-  .fbct-contact-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    border-top: 1px solid var(--forest);
-    border-bottom: 1px solid var(--forest);
-  }
-
-  .fbct-contact-cell {
-    min-width: 0;
-    padding: 30px 24px;
-    border-right: 1px solid var(--line);
-    transition: background .25s ease;
-  }
-
-  .fbct-contact-cell:first-child {
-    padding-left: 0;
-  }
-
-  .fbct-contact-cell:last-child {
-    border-right: 0;
-  }
-
-  .fbct-contact-cell:hover {
-    background: #edf0e4;
-  }
-
-  .fbct-contact-cell h3 {
-    margin: 18px 0 12px;
-    font-size: 22px;
-    font-weight: 500;
-    line-height: 1.2;
-    letter-spacing: -.035em;
-  }
-
-  .fbct-contact-cell a {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 44px;
-    font-size: 12px;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  }
-
-  .fbct-contact-cell a svg {
-    flex-shrink: 0;
-  }
-
-  .fbct-contact-cell a:hover {
-    color: var(--brass);
-  }
-
-  .fbct-contact-cell > strong {
-    display: block;
-    padding-top: 10px;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .fbct-contact-cell p,
-  .fbct-contact-cell address {
-    margin: 8px 0 0;
-    color: #516b62;
-    font-size: 11px;
-    font-style: normal;
-    line-height: 1.9;
-    overflow-wrap: anywhere;
-  }
-
-  .fbct-sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .fbct-spinner {
-    animation: fbctSpin 1s linear infinite;
-  }
-
-  @keyframes fbctSpin {
-    to { transform: rotate(360deg); }
-  }
-
-  @keyframes fbctEnter {
-    from {
-      opacity: 0;
-      transform: translateY(24px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @media (max-width: 1000px) {
-    .fbct-contact-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .fbct-contact-cell {
-      padding: 28px 22px;
-    }
-
-    .fbct-contact-cell:first-child {
-      padding-left: 22px;
-    }
-
-    .fbct-contact-cell:nth-child(2) {
-      border-right: 0;
-    }
-
-    .fbct-contact-cell:nth-child(-n + 2) {
-      border-bottom: 1px solid var(--line);
-    }
-  }
-
-  @media (max-width: 600px) {
-    .fbct-header h1 {
-      font-size: clamp(55px, 15vw, 80px);
-    }
-
-    .fbct-intro {
-      font-size: 14px;
-    }
-
-    .fbct-message-board {
-      box-shadow: 7px 7px 0 rgba(23, 63, 54, .1);
-    }
-
-    .fbct-board-top {
-      padding: 25px 22px;
-      gap: 15px;
-    }
-
-    .fbct-board-top h2 {
-      font-size: 33px;
-    }
-
-    .fbct-mail-mark {
-      width: 54px;
-      height: 54px;
-    }
-
-    .fbct-mail-mark svg {
-      width: 25px;
-      height: 25px;
-    }
-
-    .fbct-fields {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 25px;
-    }
-
-    .fbct-message-board form {
-      padding: 28px 22px;
-    }
-
-    .fbct-form-bottom {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 20px;
-    }
-
-    .fbct-form-bottom > p {
-      max-width: none;
-    }
-
-    .fbct-board-signature {
-      flex-wrap: wrap;
-      gap: 10px;
-      padding: 18px 22px;
-    }
-
-    .fbct-contact-grid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .fbct-contact-cell,
-    .fbct-contact-cell:first-child {
-      padding: 25px 16px;
-      border-right: 0;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .fbct-contact-cell:last-child {
-      border-bottom: 0;
-    }
-
-    .fbct-strip-heading {
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .fbct-strip-heading h2 {
-      font-size: 37px;
-    }
-
-    .fbct-contact-cell h3 {
-      margin-top: 14px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .fbct-page *,
-    .fbct-page *::before,
-    .fbct-page *::after {
-      animation: none !important;
-      transition: none !important;
-    }
-  }
-`;
 
 export default Contact;

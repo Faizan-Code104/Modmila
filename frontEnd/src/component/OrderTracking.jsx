@@ -49,7 +49,7 @@ const formatMoney = (value) => {
   return Number.isFinite(amount)
     ? new Intl.NumberFormat("en-US", {
         style: "currency",
-        currency: "USD",
+        currency: BUSINESS_INFO.currency || "USD",
       }).format(amount)
     : "—";
 };
@@ -72,17 +72,69 @@ const ProductImage = ({ image, name }) => {
   }, [src]);
 
   return (
-    <div className="fbtrack-product-image">
+    <div className="grid size-16 shrink-0 place-items-center overflow-hidden bg-linen text-muted sm:size-20">
       {src && !failed ? (
         <img
           src={src}
           alt={name || "Ordered product"}
           loading="lazy"
           onError={() => setFailed(true)}
+          className="size-full object-cover"
         />
       ) : (
-        <ImageOff size={23} aria-label="Product image unavailable" />
+        <ImageOff size={22} aria-label="Product image unavailable" />
       )}
+    </div>
+  );
+};
+
+/* A 3D parcel built from six CSS faces */
+const Parcel = () => {
+  const size = "size-[180px] sm:size-[220px]";
+  const face =
+    "absolute inset-0 border border-[#c9b9a6] bg-[#e4d6c4] [backface-visibility:hidden]";
+  const half = "[--half:90px] sm:[--half:110px]";
+
+  return (
+    <div
+      aria-hidden="true"
+      className={`relative mx-auto ${size} ${half} perspective-[1200px]`}
+    >
+      <div className="relative size-full animate-float-3d transform-3d">
+        <div
+          className={`relative size-full transition-transform duration-[1.4s] ease-soft transform-3d [transform:rotateX(-22deg)_rotateY(-38deg)] hover:[transform:rotateX(-30deg)_rotateY(140deg)]`}
+        >
+          {/* front */}
+          <div className={`${face} [transform:translateZ(var(--half))]`}>
+            <span className="absolute inset-y-0 left-1/2 w-8 -translate-x-1/2 bg-wine/80" />
+            <span className="absolute bottom-4 left-4 bg-paper px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-ink shadow-sm">
+              MM / {BUSINESS_INFO.businessName}
+            </span>
+          </div>
+          {/* back */}
+          <div className={`${face} [transform:rotateY(180deg)_translateZ(var(--half))]`}>
+            <span className="absolute inset-y-0 left-1/2 w-8 -translate-x-1/2 bg-wine/80" />
+          </div>
+          {/* right */}
+          <div className={`${face} bg-[#d8c7b2] [transform:rotateY(90deg)_translateZ(var(--half))]`}>
+            <span className="absolute left-4 top-4 font-serif text-3xl italic text-wine/80">
+              ✳
+            </span>
+            <span className="absolute bottom-4 right-4 text-[9px] font-bold uppercase tracking-[0.2em] text-ink/70">
+              Handle with care
+            </span>
+          </div>
+          {/* left */}
+          <div className={`${face} bg-[#d8c7b2] [transform:rotateY(-90deg)_translateZ(var(--half))]`} />
+          {/* top */}
+          <div className={`${face} bg-[#efe3d3] [transform:rotateX(90deg)_translateZ(var(--half))]`}>
+            <span className="absolute inset-y-0 left-1/2 w-8 -translate-x-1/2 bg-wine/80" />
+          </div>
+          {/* bottom */}
+          <div className={`${face} [transform:rotateX(-90deg)_translateZ(var(--half))]`} />
+        </div>
+      </div>
+      <span className="absolute -bottom-10 left-1/2 h-6 w-3/4 -translate-x-1/2 rounded-[50%] bg-ink/20 blur-md" />
     </div>
   );
 };
@@ -135,7 +187,7 @@ const OrderTracking = () => {
     try {
       const response = await fetch(
         `${apiBase}/api/orders/track/${encodeURIComponent(value)}`,
-        { signal: controller.signal }
+        { signal: controller.signal },
       );
 
       const data = await response.json().catch(() => ({}));
@@ -143,7 +195,7 @@ const OrderTracking = () => {
       if (!response.ok) {
         throw new Error(
           data?.message ||
-            "We couldn't find an order with this number. Please check and try again."
+            "We couldn't find an order with this number. Please check and try again.",
         );
       }
 
@@ -153,7 +205,7 @@ const OrderTracking = () => {
         Array.isArray(data.order)
       ) {
         throw new Error(
-          "Order details are unavailable right now. Please try again."
+          "Order details are unavailable right now. Please try again.",
         );
       }
 
@@ -166,7 +218,7 @@ const OrderTracking = () => {
       } else if (fetchError?.name !== "AbortError") {
         setError(
           fetchError?.message ||
-            "Unable to retrieve this order right now. Please try again."
+            "Unable to retrieve this order right now. Please try again.",
         );
       }
     } finally {
@@ -198,13 +250,10 @@ const OrderTracking = () => {
   const status = String(order?.status || "").trim();
   const isCancelled = status.toLowerCase() === "cancelled";
   const currentStepIndex = STATUS_STEPS.findIndex(
-    (step) => step.key.toLowerCase() === status.toLowerCase()
+    (step) => step.key.toLowerCase() === status.toLowerCase(),
   );
 
-  const destination = [
-    order?.shippingAddress?.city,
-    order?.shippingAddress?.state,
-  ]
+  const destination = [order?.shippingAddress?.city, order?.shippingAddress?.state]
     .filter(Boolean)
     .join(", ");
 
@@ -212,228 +261,327 @@ const OrderTracking = () => {
 
   const supportHref = BUSINESS_INFO.email
     ? `mailto:${BUSINESS_INFO.email}?subject=${encodeURIComponent(
-        `${BUSINESS_INFO.businessName} Order Support - ${
-          order?.orderNumber || ""
-        }`
+        `${BUSINESS_INFO.businessName} Order Support - ${order?.orderNumber || ""}`,
       )}`
     : "";
 
+  const progressPercent =
+    currentStepIndex >= 0 ? (currentStepIndex / (STATUS_STEPS.length - 1)) * 100 : 0;
+
   return (
-    <main className="fbtrack-page">
-      <style>{styles}</style>
-
-      <div className="fbtrack-container">
-        <div className="fbtrack-topline">
-          <span>{BUSINESS_INFO.businessName} / Order care</span>
-          <Link to="/contact">
-            Need a hand?
-            <ArrowUpRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
-
-        <header className="fbtrack-header">
-          <p className="fbtrack-eyebrow">Track your order</p>
-          <h1>
-            From our door
-            <span>to yours.</span>
-          </h1>
-          <p className="fbtrack-intro">
-            Enter the order number from your confirmation to see the
-            latest available status.
-          </p>
-        </header>
-
-        <section
-          className="fbtrack-desk"
-          aria-label="Order tracking"
-          aria-busy={loading}
-        >
-          <div className="fbtrack-search-strip">
-            <div className="fbtrack-search-heading">
-              <span className="fbtrack-eyebrow">Your order</span>
-              <h2>Find its journey.</h2>
-            </div>
-
-            <form onSubmit={handleTrackOrder}>
-              <label htmlFor="fbtrack-order-number">Order number</label>
-              <div className="fbtrack-input-row">
-                <div className="fbtrack-input-wrap">
-                  <Package size={19} aria-hidden="true" />
-                  <input
-                    id="fbtrack-order-number"
-                    type="text"
-                    value={trackingNumber}
-                    onChange={(event) => {
-                      setTrackingNumber(event.target.value);
-                      setError("");
-                    }}
-                    placeholder="Enter your order number"
-                    autoCapitalize="characters"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    maxLength={120}
-                    disabled={loading}
-                    aria-invalid={Boolean(error)}
-                    aria-describedby={
-                      error ? "fbtrack-error" : "fbtrack-input-help"
-                    }
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="fbtrack-button"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <Loader2
-                      size={18}
-                      className="fbtrack-spin"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <Search size={18} aria-hidden="true" />
-                  )}
-                  {loading ? "Searching…" : "Track order"}
-                </button>
-              </div>
-              <p id="fbtrack-input-help" className="fbtrack-input-help">
-                Use the order number exactly as shown in your confirmation.
-              </p>
-            </form>
+    <div className="min-w-0 overflow-x-clip bg-chalk pb-16 text-ink sm:pb-24">
+      {/* ============ Hero: search + 3D parcel ============ */}
+      <section
+        aria-label="Order tracking"
+        aria-busy={loading}
+        className="mx-auto grid max-w-[1450px] items-center gap-12 px-4 pb-14 pt-10 sm:px-8 sm:pt-14 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:px-[clamp(40px,4vw,64px)] lg:pb-20"
+      >
+        <div className="min-w-0">
+          <div className="flex animate-rise flex-wrap items-center justify-between gap-3 border-b border-line pb-4 text-[10px] font-bold uppercase tracking-[0.2em] sm:text-[11px]">
+            <span className="text-wine">{BUSINESS_INFO.businessName} / Order care</span>
+            <Link
+              to="/contact"
+              className="group inline-flex min-h-10 items-center gap-2 text-muted transition-colors hover:text-wine"
+            >
+              Need a hand?
+              <ArrowUpRight
+                size={14}
+                aria-hidden="true"
+                className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+              />
+            </Link>
           </div>
 
-          {error && (
-            <div id="fbtrack-error" className="fbtrack-error" role="alert">
-              <XCircle size={20} aria-hidden="true" />
-              <p>{error}</p>
-            </div>
-          )}
+          <p className="mt-9 animate-rise text-[10px] font-bold uppercase tracking-[0.22em] text-muted [animation-delay:80ms]">
+            Track your order
+          </p>
+          <h1 className="mt-3 font-serif text-[clamp(50px,7vw,104px)] leading-[0.93] tracking-[-0.04em] perspective-distant">
+            <span className="block animate-fold-in [animation-delay:120ms]">
+              From our door
+            </span>
+            <em className="block animate-fold-in text-wine [animation-delay:260ms]">
+              to yours.
+            </em>
+          </h1>
+          <p className="mt-5 max-w-md animate-rise text-[15px] leading-relaxed text-muted [animation-delay:380ms]">
+            Enter the order number from your confirmation to see the latest
+            available status.
+          </p>
 
-          {loading && (
-            <div className="fbtrack-loading" role="status">
-              <Loader2
-                size={27}
-                className="fbtrack-spin"
-                aria-hidden="true"
-              />
-              <p>Looking up your order…</p>
-            </div>
-          )}
-
-          {!order && !loading && (
-            <div className="fbtrack-guide">
-              <div className="fbtrack-guide-heading">
-                <p className="fbtrack-eyebrow">A few simple steps</p>
-                <h2>Stay in the loop.</h2>
+          <form
+            onSubmit={handleTrackOrder}
+            className="mt-8 animate-rise [animation-delay:460ms]"
+          >
+            <label
+              htmlFor="track-order-number"
+              className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em]"
+            >
+              Order number
+            </label>
+            <div
+              className={`flex flex-col border bg-paper shadow-[0_24px_50px_-35px_rgba(36,34,35,0.6)] transition-[border-color,box-shadow] duration-300 focus-within:border-wine focus-within:shadow-[0_24px_50px_-28px_rgba(125,48,58,0.5)] sm:flex-row ${
+                error ? "border-danger" : "border-ink"
+              }`}
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-3 px-4">
+                <Package size={19} aria-hidden="true" className="shrink-0 text-wine" />
+                <input
+                  id="track-order-number"
+                  type="text"
+                  value={trackingNumber}
+                  onChange={(event) => {
+                    setTrackingNumber(event.target.value);
+                    setError("");
+                  }}
+                  placeholder="Enter your order number"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={120}
+                  disabled={loading}
+                  aria-invalid={Boolean(error)}
+                  aria-describedby={error ? "track-error" : "track-input-help"}
+                  className="min-h-[60px] w-full min-w-0 bg-transparent text-base uppercase tracking-wide outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-muted disabled:opacity-60"
+                />
               </div>
 
-              <ol>
-                <li>
-                  <span>01</span>
-                  <div>
-                    <h3>Find your number</h3>
-                    <p>Check your existing order confirmation.</p>
-                  </div>
-                </li>
-                <li>
-                  <span>02</span>
-                  <div>
-                    <h3>Check the progress</h3>
-                    <p>View the current stage and latest available update.</p>
-                  </div>
-                </li>
-                <li>
-                  <span>03</span>
-                  <div>
-                    <h3>Talk to our team</h3>
-                    <p>Contact support if your order needs attention.</p>
-                  </div>
-                </li>
-              </ol>
+              <button
+                type="submit"
+                disabled={loading}
+                className="group relative flex min-h-[60px] items-center justify-center gap-3 overflow-hidden bg-wine px-7 text-[13px] font-bold text-paper transition-colors duration-300 hover:bg-wine-dark disabled:cursor-wait disabled:opacity-70"
+              >
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-paper/15 transition-transform duration-700 group-hover:translate-x-[420%]"
+                />
+                {loading ? (
+                  <Loader2 size={18} className="relative animate-spin" aria-hidden="true" />
+                ) : (
+                  <Search size={18} className="relative" aria-hidden="true" />
+                )}
+                <span className="relative">{loading ? "Searching…" : "Track order"}</span>
+              </button>
+            </div>
+            <p id="track-input-help" className="mt-2 text-[11px] text-muted">
+              Use the order number exactly as shown in your confirmation.
+            </p>
+          </form>
+
+          {error && (
+            <div
+              id="track-error"
+              role="alert"
+              className="mt-5 flex animate-flip-up items-start gap-3 border border-danger/30 bg-danger/10 p-4 text-danger"
+            >
+              <XCircle size={19} aria-hidden="true" className="mt-0.5 shrink-0" />
+              <p className="text-[13px] leading-relaxed">{error}</p>
             </div>
           )}
+        </div>
 
-          {order && (
-            <div className="fbtrack-result">
-              <div className="fbtrack-order-heading">
-                <div>
-                  <p className="fbtrack-eyebrow">Latest order status</p>
-                  <h2>
-                    {isCancelled
-                      ? "This order was cancelled."
-                      : currentStepIndex === 3
+        <div className="relative py-10 lg:py-0">
+          <span
+            aria-hidden="true"
+            className="absolute left-1/2 top-1/2 size-[320px] -translate-x-1/2 -translate-y-1/2 animate-[spin_40s_linear_infinite] rounded-full border border-dashed border-line sm:size-[420px]"
+          />
+          <Parcel />
+          <p className="relative mt-16 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-muted">
+            Hover the parcel · Every order, carefully packed
+          </p>
+        </div>
+      </section>
+
+      <div className="mx-auto max-w-[1450px] px-4 sm:px-8 lg:px-[clamp(40px,4vw,64px)]">
+        {/* ============ Loading ============ */}
+        {loading && (
+          <div
+            role="status"
+            className="flex min-h-[200px] animate-fade-in flex-col items-center justify-center gap-4 border-y border-line"
+          >
+            <span className="relative block h-1 w-48 overflow-hidden bg-linen">
+              <span className="absolute inset-y-0 left-0 w-1/3 animate-[marquee_1.2s_linear_infinite] bg-wine" />
+            </span>
+            <p className="text-sm text-muted">Looking up your order…</p>
+          </div>
+        )}
+
+        {/* ============ Guide (no order yet) ============ */}
+        {!order && !loading && (
+          <section
+            aria-labelledby="track-guide-title"
+            className="border-t border-ink pt-10"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <h2
+                id="track-guide-title"
+                className="font-serif text-[clamp(32px,3.6vw,52px)] leading-none"
+              >
+                Stay in <em className="text-wine">the loop.</em>
+              </h2>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">
+                A few simple steps
+              </p>
+            </div>
+
+            <ol className="mt-8 grid gap-4 md:grid-cols-3">
+              {[
+                ["Find your number", "Check your existing order confirmation."],
+                ["Check the progress", "View the current stage and latest available update."],
+                ["Talk to our team", "Contact support if your order needs attention."],
+              ].map(([title, text], index) => (
+                <li
+                  key={title}
+                  style={{ animationDelay: `${index * 120}ms` }}
+                  className="group relative animate-fold-in bg-paper p-6 transition-transform duration-500 hover:-translate-y-1"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-2 border border-dashed border-line"
+                  />
+                  <span className="relative font-serif text-4xl text-wine">
+                    0{index + 1}
+                  </span>
+                  <h3 className="relative mt-4 text-sm font-bold uppercase tracking-[0.12em]">
+                    {title}
+                  </h3>
+                  <p className="relative mt-2 text-sm leading-relaxed text-muted">{text}</p>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
+        {/* ============ Result ============ */}
+        {order && (
+          <section className="animate-fold-in border border-ink bg-paper">
+            {/* heading */}
+            <div className="grid gap-6 border-b border-line p-5 sm:p-8 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wine">
+                  Latest order status
+                </p>
+                <h2 className="mt-3 font-serif text-[clamp(32px,3.8vw,54px)] leading-[1.02]">
+                  {isCancelled
+                    ? "This order was cancelled."
+                    : currentStepIndex === 3
                       ? "Your order has arrived."
                       : currentStepIndex >= 0
-                      ? "Here’s where it stands."
-                      : "Your order update."}
-                  </h2>
+                        ? "Here’s where it stands."
+                        : "Your order update."}
+                </h2>
+                <span
+                  className={`mt-4 inline-flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] ${
+                    isCancelled ? "bg-danger/10 text-danger" : "bg-wine text-paper"
+                  }`}
+                >
                   <span
-                    className={`fbtrack-status ${
-                      isCancelled ? "is-cancelled" : ""
-                    }`}
-                  >
-                    {status || "Status unavailable"}
-                  </span>
-                </div>
-
-                <div className="fbtrack-order-number">
-                  <p className="fbtrack-eyebrow">Order number</p>
-                  <div>
-                    <strong>{order.orderNumber || "—"}</strong>
-                    {order.orderNumber && (
-                      <button
-                        type="button"
-                        onClick={handleCopyOrderNumber}
-                        aria-label="Copy order number"
-                      >
-                        {copied ? <Check size={18} /> : <Copy size={18} />}
-                      </button>
-                    )}
-                  </div>
-                  <p role="status">
-                    {copied ? "Order number copied." : copyError}
-                  </p>
-                </div>
+                    aria-hidden="true"
+                    className={`size-1.5 rounded-full ${isCancelled ? "bg-danger" : "animate-pulse bg-paper"}`}
+                  />
+                  {status || "Status unavailable"}
+                </span>
               </div>
 
-              <dl className="fbtrack-metadata">
-                <div>
-                  <dt>Placed on</dt>
-                  <dd>{formatDateTime(order.createdAt)}</dd>
+              <div className="md:text-right">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">
+                  Order number
+                </p>
+                <div className="mt-2 flex items-center gap-2 md:justify-end">
+                  <strong className="break-all font-serif text-2xl font-normal">
+                    {order.orderNumber || "—"}
+                  </strong>
+                  {order.orderNumber && (
+                    <button
+                      type="button"
+                      onClick={handleCopyOrderNumber}
+                      aria-label="Copy order number"
+                      className={`grid size-10 shrink-0 place-items-center rounded-full border transition-all duration-300 ${
+                        copied
+                          ? "border-success bg-success text-paper"
+                          : "border-line hover:border-wine hover:text-wine"
+                      }`}
+                    >
+                      {copied ? <Check size={16} className="animate-scale-in" /> : <Copy size={16} />}
+                    </button>
+                  )}
                 </div>
-                <div>
-                  <dt>Destination</dt>
-                  <dd>{destination || "—"}</dd>
-                </div>
-                <div>
-                  <dt>Latest update</dt>
-                  <dd>{formatDateTime(order.updatedAt)}</dd>
-                </div>
-              </dl>
+                <p role="status" className="mt-1 min-h-4 text-[11px] text-muted">
+                  {copied ? "Order number copied." : copyError}
+                </p>
+              </div>
+            </div>
 
-              <section
-                className="fbtrack-progress"
-                aria-labelledby="fbtrack-progress-title"
-              >
-                <p className="fbtrack-eyebrow">Delivery progress</p>
-                <h3 id="fbtrack-progress-title">The journey so far.</h3>
+            {/* metadata */}
+            <dl className="grid border-b border-line sm:grid-cols-3">
+              {[
+                ["Placed on", formatDateTime(order.createdAt)],
+                ["Destination", destination || "—"],
+                ["Latest update", formatDateTime(order.updatedAt)],
+              ].map(([label, value], index) => (
+                <div
+                  key={label}
+                  className={`p-5 sm:px-8 ${index > 0 ? "border-t border-line sm:border-l sm:border-t-0" : ""}`}
+                >
+                  <dt className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted">
+                    {label}
+                  </dt>
+                  <dd className="mt-1.5 font-serif text-xl">{value}</dd>
+                </div>
+              ))}
+            </dl>
 
-                {isCancelled ? (
-                  <div className="fbtrack-cancelled">
-                    <XCircle size={25} aria-hidden="true" />
-                    <p>
-                      This order was cancelled and will not be delivered.
-                      Contact support if you believe this is a mistake.
-                    </p>
-                  </div>
-                ) : currentStepIndex < 0 ? (
-                  <p className="fbtrack-muted">
-                    A delivery stage is not available for this status.
-                    Contact our team for more details.
+            {/* progress */}
+            <section
+              aria-labelledby="track-progress-title"
+              className="border-b border-line p-5 sm:p-8"
+            >
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wine">
+                Delivery progress
+              </p>
+              <h3 id="track-progress-title" className="mt-2 font-serif text-3xl">
+                The journey so far.
+              </h3>
+
+              {isCancelled ? (
+                <div className="mt-6 flex items-start gap-3 border border-danger/30 bg-danger/10 p-5 text-danger">
+                  <XCircle size={22} aria-hidden="true" className="mt-0.5 shrink-0" />
+                  <p className="text-sm leading-relaxed">
+                    This order was cancelled and will not be delivered. Contact
+                    support if you believe this is a mistake.
                   </p>
-                ) : (
-                  <ol className="fbtrack-timeline">
+                </div>
+              ) : currentStepIndex < 0 ? (
+                <p className="mt-6 text-sm text-muted">
+                  A delivery stage is not available for this status. Contact our
+                  team for more details.
+                </p>
+              ) : (
+                <div className="relative mt-10">
+                  {/* track line (horizontal on md+, vertical on mobile) */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute bottom-5 left-5 top-5 w-px bg-line md:bottom-auto md:left-[12.5%] md:right-[12.5%] md:top-5 md:h-px md:w-auto"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-5 top-5 hidden h-px origin-left bg-wine transition-[width] duration-[1.4s] ease-soft md:left-[12.5%] md:block"
+                    style={{ width: `${progressPercent * 0.75}%` }}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="absolute left-5 top-5 w-px bg-wine transition-[height] duration-[1.4s] ease-soft md:hidden"
+                    style={{ height: `calc(${progressPercent}% - 40px)` }}
+                  />
+                  {/* moving truck (desktop) */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute -top-7 hidden -translate-x-1/2 text-wine transition-[left] duration-[1.4s] ease-soft md:block"
+                    style={{ left: `calc(12.5% + ${progressPercent * 0.75}%)` }}
+                  >
+                    <Truck size={20} className="animate-[float-3d_3s_ease-in-out_infinite]" />
+                  </span>
+
+                  <ol className="relative grid gap-7 md:grid-cols-4 md:gap-4">
                     {STATUS_STEPS.map((step, index) => {
                       const Icon = step.icon;
                       const isCurrent = index === currentStepIndex;
@@ -442,668 +590,161 @@ const OrderTracking = () => {
                       return (
                         <li
                           key={step.key}
-                          className={
-                            isCurrent
-                              ? "is-current"
-                              : isPast
-                              ? "is-complete"
-                              : ""
-                          }
                           aria-current={isCurrent ? "step" : undefined}
+                          style={{ animationDelay: `${index * 160}ms` }}
+                          className="flex animate-rise items-start gap-4 md:flex-col md:items-center md:text-center"
                         >
-                          <span className="fbtrack-step-icon">
+                          <span
+                            className={`relative grid size-10 shrink-0 place-items-center rounded-full border transition-all duration-500 ${
+                              isPast
+                                ? "border-wine bg-wine text-paper"
+                                : isCurrent
+                                  ? "scale-110 border-wine bg-paper text-wine shadow-[0_0_0_6px_rgba(125,48,58,0.14)]"
+                                  : "border-line bg-paper text-muted"
+                            }`}
+                          >
                             {isPast ? (
-                              <Check size={20} aria-hidden="true" />
+                              <Check size={18} aria-hidden="true" />
                             ) : (
-                              <Icon size={20} aria-hidden="true" />
+                              <Icon size={18} aria-hidden="true" />
                             )}
                           </span>
-                          <div>
-                            <h4>{step.title}</h4>
-                            <p>
+                          <div className="md:mt-3">
+                            <h4
+                              className={`text-sm font-bold ${
+                                isCurrent || isPast ? "text-ink" : "text-muted"
+                              }`}
+                            >
+                              {step.title}
+                            </h4>
+                            <p className="mt-0.5 text-xs text-muted">
                               {isCurrent
                                 ? index === 3
                                   ? "Completed"
                                   : "Current stage"
                                 : isPast
-                                ? "Completed"
-                                : "Not reached yet"}
+                                  ? "Completed"
+                                  : "Not reached yet"}
                             </p>
                             {index === 0 && (
-                              <time>{formatDateTime(order.createdAt)}</time>
+                              <time className="mt-0.5 block text-[11px] text-muted">
+                                {formatDateTime(order.createdAt)}
+                              </time>
                             )}
                           </div>
                         </li>
                       );
                     })}
                   </ol>
-                )}
-              </section>
-
-              <section
-                className="fbtrack-purchase"
-                aria-labelledby="fbtrack-purchase-title"
-              >
-                <div className="fbtrack-purchase-heading">
-                  <div>
-                    <p className="fbtrack-eyebrow">Your purchase</p>
-                    <h3 id="fbtrack-purchase-title">Inside your order.</h3>
-                  </div>
-                  <span>
-                    {items.length} {items.length === 1 ? "item" : "items"}
-                  </span>
                 </div>
+              )}
+            </section>
 
-                {items.length ? (
-                  <ul className="fbtrack-items">
-                    {items.map((item, index) => (
-                      <li key={`${item.product || item._id || "item"}-${index}`}>
-                        <ProductImage image={item.image} name={item.name} />
-                        <div className="fbtrack-item-copy">
-                          <h4>{item.name || "Ordered product"}</h4>
-                          <span>Quantity: {item.quantity ?? "—"}</span>
-                        </div>
-                        <div className="fbtrack-item-price">
-                          <small>Unit price</small>
-                          <strong>{formatMoney(item.price)}</strong>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="fbtrack-muted">
-                    Item details are not available for this order.
+            {/* purchase */}
+            <section aria-labelledby="track-purchase-title" className="p-5 sm:p-8">
+              <div className="flex items-end justify-between gap-4 border-b border-dashed border-line pb-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wine">
+                    Your purchase
                   </p>
-                )}
-
-                <div className="fbtrack-total">
-                  <span>Order total</span>
-                  <strong>{formatMoney(order.totalAmount)}</strong>
+                  <h3 id="track-purchase-title" className="mt-2 font-serif text-3xl">
+                    Inside your order.
+                  </h3>
                 </div>
-              </section>
-            </div>
+                <span className="text-xs text-muted">
+                  {items.length} {items.length === 1 ? "item" : "items"}
+                </span>
+              </div>
+
+              {items.length ? (
+                <ul className="divide-y divide-line">
+                  {items.map((item, index) => (
+                    <li
+                      key={`${item.product || item._id || "item"}-${index}`}
+                      style={{ animationDelay: `${index * 80}ms` }}
+                      className="flex animate-rise items-center gap-4 py-4"
+                    >
+                      <ProductImage image={item.image} name={item.name} />
+                      <div className="min-w-0 flex-1">
+                        <h4 className="break-words font-serif text-lg leading-tight sm:text-xl">
+                          {item.name || "Ordered product"}
+                        </h4>
+                        <span className="text-xs text-muted">
+                          Quantity: {item.quantity ?? "—"}
+                        </span>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <small className="block text-[10px] uppercase tracking-[0.14em] text-muted">
+                          Unit price
+                        </small>
+                        <strong className="text-sm font-semibold">
+                          {formatMoney(item.price)}
+                        </strong>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 text-sm text-muted">
+                  Item details are not available for this order.
+                </p>
+              )}
+
+              <div className="mt-2 flex items-end justify-between gap-4 border-t-2 border-ink pt-4">
+                <span className="text-[11px] font-bold uppercase tracking-[0.16em]">
+                  Order total
+                </span>
+                <strong className="font-serif text-[32px] font-normal leading-none">
+                  {formatMoney(order.totalAmount)}
+                </strong>
+              </div>
+            </section>
+          </section>
+        )}
+
+        {/* ============ Support ============ */}
+        <footer className="mt-12 flex flex-col items-start justify-between gap-6 bg-ink p-6 text-paper sm:flex-row sm:items-center sm:p-10">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#d9a9ae]">
+              We’re here to help
+            </p>
+            <h3 className="mt-2 font-serif text-[clamp(28px,3vw,42px)] leading-tight">
+              A question about <em className="text-[#d9a9ae]">your order?</em>
+            </h3>
+            <p className="mt-2 text-sm text-paper/70">
+              If anything looks incorrect, our support team can help.
+            </p>
+          </div>
+
+          {supportHref ? (
+            <a
+              href={supportHref}
+              className="group inline-flex min-h-14 shrink-0 items-center gap-6 bg-wine px-6 py-4 text-sm font-semibold transition-colors hover:bg-wine-dark"
+            >
+              Contact support
+              <ArrowRight
+                size={18}
+                aria-hidden="true"
+                className="transition-transform duration-300 group-hover:translate-x-1"
+              />
+            </a>
+          ) : (
+            <Link
+              to="/contact"
+              className="group inline-flex min-h-14 shrink-0 items-center gap-6 bg-wine px-6 py-4 text-sm font-semibold transition-colors hover:bg-wine-dark"
+            >
+              Contact support
+              <ArrowRight
+                size={18}
+                aria-hidden="true"
+                className="transition-transform duration-300 group-hover:translate-x-1"
+              />
+            </Link>
           )}
-
-          <footer className="fbtrack-support">
-            <div>
-              <p className="fbtrack-eyebrow">We’re here to help</p>
-              <h3>A question about your order?</h3>
-              <p>
-                If anything looks incorrect, our support team can help.
-              </p>
-            </div>
-
-            {supportHref ? (
-              <a className="fbtrack-button" href={supportHref}>
-                Contact support
-                <ArrowRight size={18} aria-hidden="true" />
-              </a>
-            ) : (
-              <Link className="fbtrack-button" to="/contact">
-                Contact support
-                <ArrowRight size={18} aria-hidden="true" />
-              </Link>
-            )}
-          </footer>
-        </section>
+        </footer>
       </div>
-    </main>
+    </div>
   );
 };
-
-const styles = `
-  .fbtrack-page {
-    --ink: #173f36;
-    --cream: #f5f0e6;
-    --paper: #fffdf5;
-    --lime: #d7e5a5;
-    --accent: #a56e4f;
-    --muted: #516b62;
-    --line: rgba(23, 63, 54, .23);
-    min-height: 100vh;
-    padding-bottom: clamp(45px, 7vw, 90px);
-    background: var(--cream);
-    color: var(--ink);
-    font-family: 'Onest', ui-sans-serif, system-ui,
-      -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    line-height: 1.5;
-  }
-
-  .fbtrack-page *,
-  .fbtrack-page *::before,
-  .fbtrack-page *::after {
-    box-sizing: border-box;
-  }
-
-  .fbtrack-page a { color: inherit; text-decoration: none; }
-  .fbtrack-page button,
-  .fbtrack-page input { font: inherit; }
-  .fbtrack-page button { cursor: pointer; }
-  .fbtrack-page button:disabled { cursor: wait; opacity: .65; }
-
-  .fbtrack-page a:focus-visible,
-  .fbtrack-page button:focus-visible,
-  .fbtrack-page input:focus-visible {
-    outline: 3px solid var(--accent);
-    outline-offset: 4px;
-  }
-
-  .fbtrack-container {
-    width: min(100%, 1380px);
-    margin-inline: auto;
-    padding-inline: clamp(20px, 4.2vw, 65px);
-  }
-
-  .fbtrack-topline {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px 20px;
-    padding-block: 18px;
-    border-bottom: 1px solid var(--line);
-    font-size: 11px;
-  }
-
-  .fbtrack-topline a {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 44px;
-    font-weight: 600;
-  }
-
-  .fbtrack-eyebrow {
-    margin: 0;
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .13em;
-  }
-
-  .fbtrack-header {
-    padding-block: clamp(35px, 5vw, 65px);
-    animation: fbtrackEnter .6s both;
-  }
-
-  .fbtrack-header h1 {
-    margin: 20px 0 25px;
-    font-size: clamp(52px, 8vw, 112px);
-    font-weight: 500;
-    line-height: 1;
-    letter-spacing: -.07em;
-  }
-
-  .fbtrack-header h1 span {
-    display: block;
-    margin-left: clamp(0px, 13vw, 185px);
-    color: var(--accent);
-  }
-
-  .fbtrack-intro {
-    max-width: 530px;
-    margin: 0;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.9;
-  }
-
-  .fbtrack-desk {
-    border: 1px solid var(--ink);
-    background: var(--paper);
-    box-shadow: 9px 9px 0 rgba(23, 63, 54, .09);
-  }
-
-  .fbtrack-search-strip {
-    display: grid;
-    grid-template-columns: minmax(0, .7fr) minmax(0, 1.3fr);
-    align-items: center;
-    gap: 30px;
-    padding: clamp(24px, 3.5vw, 45px);
-    border-bottom: 1px solid var(--ink);
-    background: var(--lime);
-  }
-
-  .fbtrack-search-heading h2 {
-    margin: 12px 0 0;
-    font-size: clamp(30px, 3.3vw, 43px);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.055em;
-  }
-
-  .fbtrack-search-strip form { min-width: 0; }
-  .fbtrack-search-strip label {
-    display: block;
-    margin-bottom: 10px;
-    font-size: 11px;
-    font-weight: 600;
-  }
-
-  .fbtrack-input-row {
-    display: flex;
-    gap: 12px;
-  }
-
-  .fbtrack-input-wrap {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    min-width: 0;
-    gap: 12px;
-    padding-inline: 15px;
-    border: 1px solid var(--ink);
-    background: var(--paper);
-  }
-
-  .fbtrack-input-wrap svg { flex-shrink: 0; }
-  .fbtrack-input-wrap input {
-    width: 100%;
-    min-width: 0;
-    min-height: 54px;
-    padding: 12px 0;
-    border: 0;
-    background: transparent;
-    color: var(--ink);
-    font-size: 16px;
-  }
-
-  .fbtrack-input-wrap input::placeholder {
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .fbtrack-page .fbtrack-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    min-height: 54px;
-    padding: 14px 20px;
-    border: 1px solid var(--ink);
-    background: var(--ink);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: background .2s ease;
-  }
-
-  .fbtrack-button:hover:not(:disabled) { background: #102e28; }
-  .fbtrack-input-help {
-    margin: 10px 0 0;
-    color: var(--muted);
-    font-size: 10px;
-    line-height: 1.7;
-  }
-
-  .fbtrack-error,
-  .fbtrack-cancelled {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 22px;
-    background: #fff1ed;
-    color: #923c2e;
-  }
-
-  .fbtrack-error svg,
-  .fbtrack-cancelled svg { flex-shrink: 0; }
-  .fbtrack-error p,
-  .fbtrack-cancelled p { margin: 0; font-size: 13px; line-height: 1.8; }
-
-  .fbtrack-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    min-height: 220px;
-    padding: 30px;
-    font-size: 14px;
-  }
-
-  .fbtrack-guide {
-    display: grid;
-    grid-template-columns: minmax(0, .7fr) minmax(0, 1.3fr);
-    gap: 35px;
-    padding: clamp(28px, 4vw, 55px);
-  }
-
-  .fbtrack-guide h2 {
-    margin: 14px 0 0;
-    font-size: 36px;
-    font-weight: 500;
-    letter-spacing: -.05em;
-    line-height: 1.1;
-  }
-
-  .fbtrack-guide ol { margin: 0; padding: 0; list-style: none; }
-  .fbtrack-guide li {
-    display: grid;
-    grid-template-columns: 28px minmax(0, 1fr);
-    gap: 18px;
-    padding-block: 20px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fbtrack-guide li:first-child { padding-top: 0; }
-  .fbtrack-guide li > span { color: var(--accent); font-size: 11px; }
-  .fbtrack-guide h3 { margin: 0 0 7px; font-size: 19px; font-weight: 500; }
-  .fbtrack-guide li p { margin: 0; font-size: 12px; color: var(--muted); }
-
-  .fbtrack-result { animation: fbtrackEnter .45s both; }
-  .fbtrack-order-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 30px;
-    padding: clamp(25px, 4vw, 50px);
-  }
-
-  .fbtrack-order-heading > div { min-width: 0; }
-  .fbtrack-order-heading h2 {
-    max-width: 650px;
-    margin: 15px 0 20px;
-    font-size: clamp(33px, 4vw, 52px);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.055em;
-  }
-
-  .fbtrack-status {
-    display: inline-block;
-    padding: 7px 12px;
-    border: 1px solid var(--ink);
-    font-size: 11px;
-    background: var(--lime);
-  }
-
-  .fbtrack-status.is-cancelled {
-    color: #923c2e;
-    border-color: #923c2e;
-    background: #fff1ed;
-  }
-
-  .fbtrack-order-number { max-width: 300px; }
-  .fbtrack-order-number > div {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-top: 10px;
-  }
-
-  .fbtrack-order-number strong {
-    min-width: 0;
-    font-size: 21px;
-    font-weight: 500;
-    overflow-wrap: anywhere;
-  }
-
-  .fbtrack-order-number button {
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border: 1px solid var(--line);
-    background: var(--cream);
-    color: var(--ink);
-  }
-
-  .fbtrack-order-number > p:last-child {
-    margin: 8px 0 0;
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  .fbtrack-metadata {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 0;
-    border-block: 1px solid var(--line);
-  }
-
-  .fbtrack-metadata > div {
-    padding: 24px 30px;
-    border-right: 1px solid var(--line);
-  }
-
-  .fbtrack-metadata > div:last-child { border-right: 0; }
-  .fbtrack-metadata dt { font-size: 10px; color: var(--muted); }
-  .fbtrack-metadata dd {
-    margin: 8px 0 0;
-    font-size: 13px;
-    overflow-wrap: anywhere;
-  }
-
-  .fbtrack-progress,
-  .fbtrack-purchase { padding: clamp(25px, 4vw, 50px); }
-  .fbtrack-progress { border-bottom: 1px solid var(--line); }
-  .fbtrack-progress h3,
-  .fbtrack-purchase-heading h3 {
-    margin: 13px 0 25px;
-    font-size: clamp(28px, 3vw, 38px);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.05em;
-  }
-
-  .fbtrack-timeline {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .fbtrack-timeline li {
-    position: relative;
-    min-width: 0;
-    padding-right: 15px;
-  }
-
-  .fbtrack-timeline li::before {
-    content: '';
-    position: absolute;
-    top: 23px;
-    left: 48px;
-    right: 0;
-    height: 1px;
-    background: var(--line);
-  }
-
-  .fbtrack-timeline li:last-child::before { display: none; }
-  .fbtrack-timeline li.is-complete::before { background: var(--ink); }
-
-  .fbtrack-step-icon {
-    position: relative;
-    display: grid;
-    place-items: center;
-    width: 48px;
-    height: 48px;
-    border: 1px solid var(--line);
-    background: var(--cream);
-    color: var(--muted);
-  }
-
-  .is-complete .fbtrack-step-icon { background: var(--ink); color: white; }
-  .is-current .fbtrack-step-icon {
-    background: var(--lime);
-    border-color: var(--ink);
-    color: var(--ink);
-  }
-
-  .fbtrack-timeline h4 {
-    margin: 17px 0 6px;
-    font-size: 15px;
-    font-weight: 600;
-  }
-
-  .fbtrack-timeline p { margin: 0; font-size: 11px; color: var(--muted); }
-  .fbtrack-timeline time {
-    display: block;
-    margin-top: 8px;
-    font-size: 10px;
-    color: var(--muted);
-  }
-
-  .fbtrack-purchase-heading {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-  }
-
-  .fbtrack-purchase-heading > span { font-size: 11px; color: var(--muted); }
-  .fbtrack-items { margin: 0; padding: 0; list-style: none; }
-  .fbtrack-items li {
-    display: grid;
-    grid-template-columns: 90px minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 22px;
-    padding-block: 20px;
-    border-top: 1px solid var(--line);
-  }
-
-  .fbtrack-product-image {
-    display: grid;
-    place-items: center;
-    width: 90px;
-    height: 100px;
-    background: var(--cream);
-    color: var(--muted);
-  }
-
-  .fbtrack-product-image img {
-    width: 100%;
-    height: 100%;
-    padding: 8px;
-    object-fit: contain;
-  }
-
-  .fbtrack-item-copy h4 {
-    margin: 0 0 10px;
-    font-size: 16px;
-    font-weight: 500;
-    overflow-wrap: anywhere;
-  }
-
-  .fbtrack-item-copy > span { font-size: 11px; color: var(--muted); }
-  .fbtrack-item-price { text-align: right; }
-  .fbtrack-item-price small { display: block; font-size: 10px; color: var(--muted); }
-  .fbtrack-item-price strong { display: block; margin-top: 6px; font-size: 15px; }
-
-  .fbtrack-total {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    margin-top: 15px;
-    padding-top: 25px;
-    border-top: 1px solid var(--ink);
-  }
-
-  .fbtrack-total > span { font-size: 13px; }
-  .fbtrack-total strong { font-size: 28px; font-weight: 500; }
-  .fbtrack-muted { color: var(--muted); font-size: 13px; line-height: 1.8; }
-
-  .fbtrack-support {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 25px;
-    padding: clamp(25px, 3.5vw, 45px);
-    border-top: 1px solid var(--ink);
-    background: var(--cream);
-  }
-
-  .fbtrack-support h3 {
-    margin: 12px 0;
-    font-size: 28px;
-    font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: -.04em;
-  }
-
-  .fbtrack-support div > p:last-child {
-    margin: 0;
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.8;
-  }
-
-  .fbtrack-support .fbtrack-button { flex-shrink: 0; }
-
-  @keyframes fbtrackEnter {
-    from { opacity: 0; transform: translateY(18px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes fbtrackSpin { to { transform: rotate(360deg); } }
-  .fbtrack-spin { animation: fbtrackSpin 1s linear infinite; }
-
-  @media (max-width: 950px) {
-    .fbtrack-search-strip,
-    .fbtrack-guide { grid-template-columns: minmax(0, 1fr); }
-    .fbtrack-order-heading { flex-direction: column; }
-    .fbtrack-order-number { max-width: 100%; }
-  }
-
-  @media (max-width: 650px) {
-    .fbtrack-header h1 span { margin-left: 0; }
-    .fbtrack-input-row { flex-direction: column; }
-    .fbtrack-input-row .fbtrack-button { width: 100%; }
-    .fbtrack-metadata { grid-template-columns: minmax(0, 1fr); }
-    .fbtrack-metadata > div {
-      border-right: 0;
-      border-bottom: 1px solid var(--line);
-      padding: 18px 24px;
-    }
-    .fbtrack-metadata > div:last-child { border-bottom: 0; }
-
-    .fbtrack-timeline { grid-template-columns: minmax(0, 1fr); }
-    .fbtrack-timeline li {
-      display: grid;
-      grid-template-columns: 48px minmax(0, 1fr);
-      gap: 18px;
-      padding: 0 0 28px;
-    }
-    .fbtrack-timeline li:last-child { padding-bottom: 0; }
-    .fbtrack-timeline li::before {
-      left: 23px;
-      right: auto;
-      top: 48px;
-      bottom: 0;
-      width: 1px;
-      height: auto;
-    }
-    .fbtrack-timeline h4 { margin-top: 3px; }
-    .fbtrack-support { flex-direction: column; align-items: stretch; }
-    .fbtrack-support .fbtrack-button { width: 100%; }
-  }
-
-  @media (max-width: 420px) {
-    .fbtrack-header h1 { font-size: 52px; }
-    .fbtrack-desk { box-shadow: 5px 5px 0 rgba(23, 63, 54, .09); }
-    .fbtrack-items li {
-      grid-template-columns: 70px minmax(0, 1fr);
-      gap: 15px;
-    }
-    .fbtrack-product-image { width: 70px; height: 85px; }
-    .fbtrack-item-price { grid-column: 2; text-align: left; }
-    .fbtrack-item-price small { display: inline; margin-right: 8px; }
-    .fbtrack-item-price strong { display: inline; }
-    .fbtrack-purchase-heading { align-items: flex-start; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .fbtrack-page *,
-    .fbtrack-page *::before,
-    .fbtrack-page *::after {
-      animation: none !important;
-      transition: none !important;
-    }
-  }
-`;
 
 export default OrderTracking;

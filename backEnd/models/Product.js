@@ -1,5 +1,13 @@
 import mongoose from "mongoose";
 
+/* Modmila bedding categories — must match CATEGORIES names in the frontend src/storeInfo.js exactly */
+export const PRODUCT_CATEGORIES = [
+  "Duvet Cover Sets",
+  "Quilts & Coverlets",
+  "Sheet Sets",
+  "Shams & Bed Skirts",
+];
+
 const getStockStatus = (stock) => {
   if (stock === 0) return "Out of Stock";
   if (stock <= 5) return "Low Stock";
@@ -19,13 +27,7 @@ const productSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: [
-        "Shoulder Bags",
-        "Handbags",
-        "Tote Bags",
-        "Crossbody Bags",
-        "Hobo Bags",
-      ],
+      enum: PRODUCT_CATEGORIES,
     },
 
     price: {

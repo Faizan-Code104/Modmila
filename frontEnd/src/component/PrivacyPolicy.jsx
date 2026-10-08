@@ -1,7 +1,13 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, Mail, Phone } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Mail, Phone, ShieldCheck } from "lucide-react";
 import { BUSINESS_INFO, getFullAddress } from "../storeInfo";
+
+const POLICY_TITLE = "Privacy Policy";
+const UPDATED_ISO = "2026-10-08";
+
+const linkClass =
+  "font-semibold text-ink underline decoration-wine/40 underline-offset-4 transition-colors hover:text-wine";
 
 const BusinessDetails = () => {
   const address = getFullAddress();
@@ -12,38 +18,51 @@ const BusinessDetails = () => {
 
   const schedule = [
     BUSINESS_INFO.businessDays,
-    [BUSINESS_INFO.supportHours, BUSINESS_INFO.timeZone]
-      .filter(Boolean)
-      .join(" "),
+    [BUSINESS_INFO.supportHours, BUSINESS_INFO.timeZone].filter(Boolean).join(" "),
   ]
     .filter(Boolean)
     .join(", ");
 
   return (
-    <div className="fbprivacy-business">
-      <strong>{BUSINESS_INFO.businessName}</strong>
+    <div className="grid justify-items-start gap-1.5 border border-line bg-chalk p-5">
+      <strong className="font-serif text-2xl font-normal text-ink">
+        {BUSINESS_INFO.businessName}
+      </strong>
 
-      {address && <address>{address}</address>}
+      {address && <address className="not-italic">{address}</address>}
 
       {BUSINESS_INFO.email && (
-        <a href={`mailto:${BUSINESS_INFO.email}`}>
-          <Mail size={17} aria-hidden="true" />
-          <span>{BUSINESS_INFO.email}</span>
+        <a
+          href={`mailto:${BUSINESS_INFO.email}`}
+          className="inline-flex min-h-11 max-w-full items-center gap-3 text-sm font-semibold text-ink transition-colors hover:text-wine"
+        >
+          <Mail size={16} aria-hidden="true" className="shrink-0 text-wine" />
+          <span className="min-w-0 break-all">{BUSINESS_INFO.email}</span>
         </a>
       )}
 
       {BUSINESS_INFO.phoneDisplay && phoneHref && (
-        <a href={`tel:${phoneHref}`}>
-          <Phone size={17} aria-hidden="true" />
+        <a
+          href={`tel:${phoneHref}`}
+          className="inline-flex min-h-11 items-center gap-3 text-sm font-semibold text-ink transition-colors hover:text-wine"
+        >
+          <Phone size={16} aria-hidden="true" className="shrink-0 text-wine" />
           <span>{BUSINESS_INFO.phoneDisplay}</span>
         </a>
       )}
 
       {schedule && <p>Customer Support Hours: {schedule}</p>}
 
-      <Link to="/contact">
+      <Link
+        to="/contact"
+        className="group inline-flex min-h-11 items-center gap-3 text-sm font-bold text-wine"
+      >
         Contact our team
-        <ArrowUpRight size={16} aria-hidden="true" />
+        <ArrowUpRight
+          size={16}
+          aria-hidden="true"
+          className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+        />
       </Link>
     </div>
   );
@@ -52,15 +71,24 @@ const BusinessDetails = () => {
 const PrivacyContact = ({ request = false }) =>
   BUSINESS_INFO.email ? (
     <a
-      href={`mailto:${BUSINESS_INFO.email}${
-        request ? "?subject=Privacy%20Request" : ""
-      }`}
+      href={`mailto:${BUSINESS_INFO.email}${request ? "?subject=Privacy%20Request" : ""}`}
+      className={linkClass}
     >
       {BUSINESS_INFO.email}
     </a>
   ) : (
-    <Link to="/contact">our customer support team</Link>
+    <Link to="/contact" className={linkClass}>
+      our customer support team
+    </Link>
   );
+
+const Bullets = ({ items }) => (
+  <ul className="space-y-1.5 pl-5 text-sm marker:text-wine [list-style:disc]">
+    {items.map((item) => (
+      <li key={item}>{item}</li>
+    ))}
+  </ul>
+);
 
 const PrivacyPolicy = () => {
   const brand = BUSINESS_INFO.businessName;
@@ -174,7 +202,9 @@ const PrivacyPolicy = () => {
       after: [
         <>
           Additional information is available in our{" "}
-          <Link to="/cookie-policy">Cookie Policy</Link>.
+          <Link to="/cookie-policy" className={linkClass}>
+            Cookie Policy
+          </Link>.
         </>,
       ],
     },
@@ -279,671 +309,285 @@ const PrivacyPolicy = () => {
     },
   ];
 
+  /* reading progress + active section */
+  const articleRef = useRef(null);
+  const [progress, setProgress] = useState(0);
+  const [activeId, setActiveId] = useState(sections[0].id);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const element = articleRef.current;
+      if (!element) return;
+      const bounds = element.getBoundingClientRect();
+      const total = bounds.height - window.innerHeight * 0.6;
+      const value = total > 0 ? (-bounds.top + window.innerHeight * 0.3) / total : 0;
+      setProgress(Math.min(1, Math.max(0, value)));
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!("IntersectionObserver" in window)) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id.replace("policy-", ""));
+          }
+        });
+      },
+      { rootMargin: "-35% 0px -60% 0px" },
+    );
+
+    articleRef.current
+      ?.querySelectorAll("section[id^='policy-']")
+      .forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <main id="fbprivacy-top" className="fbprivacy-page">
-      <style>{styles}</style>
+    <div id="policy-top" className="min-w-0 overflow-x-clip bg-chalk pb-16 text-ink sm:pb-24">
+      {/* reading progress */}
+      <div
+        aria-hidden="true"
+        className="fixed inset-x-0 top-0 z-50 h-[3px] origin-left bg-wine transition-transform duration-150"
+        style={{ transform: `scaleX(${progress})` }}
+      />
 
-      <div className="fbprivacy-container">
-        <div className="fbprivacy-topline">
-          <span>{brand} / Privacy Policy</span>
-          <Link to="/contact">
-            Privacy questions
-            <ArrowUpRight size={16} aria-hidden="true" />
-          </Link>
-        </div>
-
-        <header className="fbprivacy-header">
-          <div>
-            <p className="fbprivacy-eyebrow">Your information</p>
-            <h1>
-              Privacy,
-              <span>with care.</span>
-            </h1>
+      {/* ============ Hero ============ */}
+      <header className="relative overflow-hidden bg-ink text-paper">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-32 -top-32 size-[520px] animate-[spin_60s_linear_infinite] rounded-full border border-dashed border-sand/15"
+        />
+        <div className="relative mx-auto max-w-[1450px] px-4 pb-14 pt-10 sm:px-8 sm:pb-20 sm:pt-14 lg:px-[clamp(40px,4vw,64px)]">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-paper/20 pb-4 text-[10px] font-bold uppercase tracking-[0.2em] sm:text-[11px]">
+            <span className="text-[#d9a9ae]">
+              {brand} / {POLICY_TITLE}
+            </span>
+            <Link
+              to="/contact"
+              className="group inline-flex min-h-10 items-center gap-2 text-paper/70 transition-colors hover:text-paper"
+            >
+              Privacy questions
+              <ArrowUpRight
+                size={14}
+                aria-hidden="true"
+                className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+              />
+            </Link>
           </div>
 
-          <div className="fbprivacy-introduction">
-            <p>
-              {brand} (“{brand},” “we,” “us,” or “our”) respects your
-              privacy. This Privacy Policy explains how we collect,
-              use, disclose, retain, and protect personal information
-              when you visit{" "}
-              {BUSINESS_INFO.website ? (
-                <a href={BUSINESS_INFO.website}>
-                  {BUSINESS_INFO.website}
-                </a>
-              ) : (
-                "our website"
-              )}
-              , create an account, communicate with us, or purchase
-              our products.
-            </p>
+          <div className="mt-10 grid items-center gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
+            <div>
+              <p className="animate-rise text-[10px] font-bold uppercase tracking-[0.22em] text-paper/60">
+                Your information
+              </p>
+              <h1 className="mt-4 font-serif text-[clamp(52px,8vw,118px)] leading-[0.92] tracking-[-0.04em] perspective-distant">
+                <span className="block animate-fold-in [animation-delay:100ms]">
+                  Privacy,
+                </span>
+                <em className="block animate-fold-in text-[#d9a9ae] [animation-delay:240ms] sm:ml-[8%]">
+                  with care.
+                </em>
+              </h1>
 
-            <div className="fbprivacy-date">
-              <span>Last updated</span>
-              <time dateTime="2026-10-03">October 3, 2026</time>
+              <p className="mt-7 max-w-2xl animate-rise text-sm leading-relaxed text-paper/75 [animation-delay:360ms] [overflow-wrap:anywhere]">
+                {brand} (“{brand},” “we,” “us,” or “our”) respects your
+                privacy. This Privacy Policy explains how we collect, use,
+                disclose, retain, and protect personal information when you
+                visit{" "}
+                {BUSINESS_INFO.website ? (
+                  <a
+                    href={BUSINESS_INFO.website}
+                    className="font-semibold text-paper underline decoration-[#d9a9ae]/60 underline-offset-4"
+                  >
+                    {BUSINESS_INFO.website}
+                  </a>
+                ) : (
+                  "our website"
+                )}
+                , create an account, communicate with us, or purchase our
+                products.
+              </p>
+
+              <p className="mt-5 inline-flex animate-rise items-center gap-3 border border-paper/25 px-3 py-2 text-[11px] [animation-delay:420ms]">
+                <span className="uppercase tracking-[0.16em] text-paper/60">Last updated</span>
+                <time dateTime={UPDATED_ISO} className="font-semibold">
+                  {BUSINESS_INFO.policyLastUpdated}
+                </time>
+              </p>
+            </div>
+
+            {/* 3D privacy seal */}
+            <div aria-hidden="true" className="relative mx-auto grid size-56 place-items-center perspective-distant sm:size-64">
+              <svg viewBox="0 0 100 100" className="absolute inset-0 size-full animate-[spin_24s_linear_infinite] fill-[#d9a9ae]">
+                <defs>
+                  <path id="privacy-seal-circle" d="M50 50m-41 0a41 41 0 1 1 82 0a41 41 0 1 1-82 0" />
+                </defs>
+                <text className="text-[7.2px] font-semibold uppercase tracking-[0.32em]">
+                  <textPath href="#privacy-seal-circle">
+                    Your information ✳ Handled with care ✳ {brand} ✳
+                  </textPath>
+                </text>
+              </svg>
+              <div className="animate-float-3d transform-3d">
+                <span className="grid size-28 animate-spin-y place-items-center rounded-full bg-wine shadow-[0_30px_50px_-20px_rgba(0,0,0,0.7)] sm:size-32">
+                  <ShieldCheck size={44} strokeWidth={1.3} className="text-paper" />
+                </span>
+              </div>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <div className="fbprivacy-layout">
-          <aside className="fbprivacy-sidebar">
-            <nav aria-label="Privacy policy sections">
-              <p className="fbprivacy-eyebrow">In this policy</p>
-              <ol>
-                {sections.map((section, index) => (
-                  <li key={section.id}>
-                    <a href={`#fbprivacy-${section.id}`}>
-                      <span>{String(index + 1).padStart(2, "0")}</span>
+      {/* ============ Document ============ */}
+      <div className="mx-auto mt-14 grid max-w-[1450px] items-start gap-8 px-4 sm:mt-20 sm:px-8 lg:grid-cols-[270px_minmax(0,1fr)] lg:gap-14 lg:px-[clamp(40px,4vw,64px)]">
+        <aside className="lg:sticky lg:top-28">
+          <nav aria-label="Privacy policy sections">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wine">
+              In this policy · {sections.length} sections
+            </p>
+            <ol className="no-scrollbar -mx-4 mt-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:block lg:max-h-[calc(100dvh-280px)] lg:overflow-y-auto lg:border-l lg:border-line lg:px-0">
+              {sections.map((section, index) => {
+                const active = activeId === section.id;
+
+                return (
+                  <li key={section.id} className="shrink-0">
+                    <a
+                      href={`#policy-${section.id}`}
+                      className={`relative flex min-h-10 items-center gap-3 whitespace-nowrap rounded-full border px-4 text-xs transition-all duration-300 lg:min-h-9 lg:rounded-none lg:border-0 lg:py-1.5 lg:pl-5 lg:pr-2 lg:whitespace-normal ${
+                        active
+                          ? "border-wine bg-wine text-paper lg:bg-transparent lg:font-bold lg:text-wine"
+                          : "border-line bg-paper text-muted hover:text-ink lg:bg-transparent"
+                      }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`absolute -left-px top-0 hidden h-full w-0.5 origin-top bg-wine transition-transform duration-500 lg:block ${
+                          active ? "scale-y-100" : "scale-y-0"
+                        }`}
+                      />
+                      <span className="text-[10px] opacity-70">{String(index + 1).padStart(2, "0")}</span>
                       {section.title}
                     </a>
                   </li>
-                ))}
-              </ol>
-            </nav>
+                );
+              })}
+            </ol>
+          </nav>
 
-            <div className="fbprivacy-request">
-              <p className="fbprivacy-eyebrow">Privacy requests</p>
-              <h2>Let’s talk.</h2>
-              <p>
-                If you have a question about this Privacy Policy or
-                want to make a privacy-related request, you can contact{" "}
-                {brand} using the details in this policy.
-              </p>
-              <Link to="/contact">
-                Contact us
-                <ArrowRight size={17} aria-hidden="true" />
-              </Link>
-            </div>
-          </aside>
+          <div className="mt-6 hidden bg-wine p-5 text-paper lg:block">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e6c4c7]">
+              Privacy requests
+            </p>
+            <h2 className="mt-2 font-serif text-3xl">Let’s talk.</h2>
+            <p className="mt-2 text-xs leading-relaxed text-paper/80">
+              If you have a question about this Privacy Policy or want to make
+              a privacy-related request, you can contact {brand} using the
+              details in this policy.
+            </p>
+            <Link
+              to="/contact"
+              className="group mt-4 flex min-h-11 items-center justify-between gap-3 border-b border-paper/60 text-xs font-bold"
+            >
+              Contact us
+              <ArrowRight size={16} aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
+          </div>
+        </aside>
 
-          <article
-            className="fbprivacy-document"
-            aria-label="Privacy policy"
-          >
-            <div className="fbprivacy-document-label">
-              <span className="fbprivacy-eyebrow">Privacy Policy</span>
-              <span>16 sections</span>
-            </div>
-
-            {sections.map((section, index) => (
-              <section
-                key={section.id}
-                id={`fbprivacy-${section.id}`}
-                className="fbprivacy-section"
-                aria-labelledby={`fbprivacy-title-${section.id}`}
+        <article ref={articleRef} aria-label="Privacy policy" className="min-w-0 border-t border-ink">
+          {sections.map((section, index) => (
+            <section
+              key={section.id}
+              id={`policy-${section.id}`}
+              aria-labelledby={`policy-title-${section.id}`}
+              className="grid scroll-mt-28 gap-3 border-b border-line py-8 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-6 sm:py-10"
+            >
+              <span
+                aria-hidden="true"
+                className={`font-serif text-4xl leading-none transition-colors duration-500 ${
+                  activeId === section.id ? "text-wine" : "text-line"
+                }`}
               >
-                <div className="fbprivacy-section-heading">
-                  <span aria-hidden="true">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <h2 id={`fbprivacy-title-${section.id}`}>
-                    {section.title}
-                  </h2>
-                </div>
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <div className="min-w-0 space-y-4 text-[15px] leading-[1.85] text-muted [overflow-wrap:anywhere]">
+                <h2
+                  id={`policy-title-${section.id}`}
+                  className="font-serif text-[clamp(26px,2.6vw,36px)] leading-tight text-ink"
+                >
+                  {section.title}
+                </h2>
 
-                <div className="fbprivacy-section-body">
-                  {section.body?.map((paragraph, paragraphIndex) => (
-                    <p key={`body-${paragraphIndex}`}>{paragraph}</p>
-                  ))}
+                {section.body?.map((paragraph, paragraphIndex) => (
+                  <p key={`body-${paragraphIndex}`}>{paragraph}</p>
+                ))}
 
-                  {section.bullets && (
-                    <ul>
-                      {section.bullets.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  )}
+                {section.bullets && <Bullets items={section.bullets} />}
 
-                  {section.after?.map((paragraph, paragraphIndex) => (
-                    <p key={`after-${paragraphIndex}`}>{paragraph}</p>
-                  ))}
+                {section.after?.map((paragraph, paragraphIndex) => (
+                  <p key={`after-${paragraphIndex}`}>{paragraph}</p>
+                ))}
 
-                  {section.afterBullets && (
-                    <ul>
-                      {section.afterBullets.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  )}
+                {section.afterBullets && <Bullets items={section.afterBullets} />}
 
-                  {section.contact && <BusinessDetails />}
-                </div>
-              </section>
-            ))}
+                {section.contact && <BusinessDetails />}
+              </div>
+            </section>
+          ))}
 
-            <footer className="fbprivacy-document-footer">
-              <span>{brand} / Privacy Policy</span>
-              <a href="#fbprivacy-top">
-                Back to top
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </a>
-            </footer>
-          </article>
-        </div>
+          <footer className="flex flex-wrap items-center justify-between gap-3 py-5 text-[11px] uppercase tracking-[0.16em] text-muted">
+            <span>
+              {brand} / {POLICY_TITLE}
+            </span>
+            <a href="#policy-top" className="group inline-flex min-h-11 items-center gap-2 font-semibold text-ink hover:text-wine">
+              Back to top
+              <ArrowUpRight size={15} aria-hidden="true" className="transition-transform duration-300 group-hover:-translate-y-1" />
+            </a>
+          </footer>
+        </article>
+      </div>
 
-        <section
-          className="fbprivacy-help"
-          aria-labelledby="fbprivacy-help-title"
-        >
+      {/* ============ Help ============ */}
+      <section
+        aria-labelledby="policy-help-title"
+        className="mx-auto mt-14 max-w-[1450px] px-4 sm:px-8 lg:px-[clamp(40px,4vw,64px)]"
+      >
+        <div className="flex flex-col items-start justify-between gap-6 bg-wine p-6 text-paper sm:flex-row sm:items-center sm:p-10">
           <div>
-            <p className="fbprivacy-eyebrow">Here to help</p>
-            <h2 id="fbprivacy-help-title">
-              Questions about your information?
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e6c4c7]">
+              Here to help
+            </p>
+            <h2 id="policy-help-title" className="mt-2 font-serif text-[clamp(32px,3.6vw,50px)] leading-tight">
+              Questions about <em>your information?</em>
             </h2>
-            <p>
+            <p className="mt-2 text-sm text-paper/80">
               Contact us if you have a privacy-related question or request.
             </p>
           </div>
-          <Link to="/contact">
+
+          <Link
+            to="/contact"
+            className="group inline-flex min-h-14 w-full shrink-0 items-center justify-between gap-6 bg-paper px-6 py-4 text-sm font-semibold text-ink transition-colors hover:bg-chalk sm:w-auto"
+          >
             Contact us
-            <ArrowRight size={18} aria-hidden="true" />
+            <ArrowRight size={18} aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
-        </section>
-      </div>
-    </main>
+        </div>
+      </section>
+    </div>
   );
 };
-
-const styles = `
-  .fbprivacy-page {
-    --ink: #173f36;
-    --cream: #f5f0e6;
-    --paper: #fffdf5;
-    --lime: #d7e5a5;
-    --accent: #a56e4f;
-    --muted: #516b62;
-    --line: rgba(23, 63, 54, .23);
-    min-height: 100vh;
-    padding-bottom: clamp(45px, 6vw, 85px);
-    background: var(--cream);
-    color: var(--ink);
-    font-family: 'Onest', ui-sans-serif, system-ui,
-      -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    line-height: 1.5;
-    scroll-margin-top: 110px;
-  }
-
-  .fbprivacy-page *,
-  .fbprivacy-page *::before,
-  .fbprivacy-page *::after {
-    box-sizing: border-box;
-  }
-
-  .fbprivacy-page a {
-    color: inherit;
-    text-underline-offset: 4px;
-  }
-
-  .fbprivacy-page a:focus-visible {
-    outline: 3px solid var(--accent);
-    outline-offset: 5px;
-  }
-
-  .fbprivacy-container {
-    width: min(100%, 1450px);
-    margin-inline: auto;
-    padding-inline: clamp(20px, 4.2vw, 70px);
-  }
-
-  .fbprivacy-topline {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px 20px;
-    padding-block: 18px;
-    border-bottom: 1px solid var(--line);
-    font-size: 11px;
-  }
-
-  .fbprivacy-topline a {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 44px;
-    text-decoration: none;
-    font-weight: 600;
-  }
-
-  .fbprivacy-eyebrow {
-    margin: 0;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .13em;
-    text-transform: uppercase;
-  }
-
-  .fbprivacy-header {
-    display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
-    align-items: end;
-    gap: clamp(30px, 5vw, 70px);
-    padding-block: clamp(40px, 6vw, 80px);
-    animation: fbprivacyEnter .6s both;
-  }
-
-  .fbprivacy-header h1 {
-    margin: 22px 0 0;
-    font-size: clamp(58px, 7.7vw, 110px);
-    font-weight: 500;
-    line-height: .98;
-    letter-spacing: -.075em;
-  }
-
-  .fbprivacy-header h1 span {
-    display: block;
-    color: var(--accent);
-  }
-
-  .fbprivacy-introduction {
-    border-left: 1px solid var(--ink);
-    padding-left: clamp(22px, 3vw, 40px);
-  }
-
-  .fbprivacy-introduction > p {
-    margin: 0;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.9;
-    overflow-wrap: anywhere;
-  }
-
-  .fbprivacy-introduction a {
-    color: var(--ink);
-  }
-
-  .fbprivacy-date {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 20px;
-    margin-top: 25px;
-    font-size: 11px;
-  }
-
-  .fbprivacy-date > span {
-    color: var(--muted);
-  }
-
-  .fbprivacy-layout {
-    display: grid;
-    grid-template-columns: 275px minmax(0, 1fr);
-    align-items: start;
-    gap: clamp(25px, 4vw, 55px);
-  }
-
-  .fbprivacy-sidebar {
-    min-width: 0;
-  }
-
-  .fbprivacy-sidebar nav {
-    border-top: 1px solid var(--ink);
-    padding-top: 20px;
-  }
-
-  .fbprivacy-sidebar ol {
-    margin: 18px 0 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .fbprivacy-sidebar li a {
-    display: grid;
-    grid-template-columns: 22px minmax(0, 1fr);
-    align-items: center;
-    gap: 10px;
-    min-height: 48px;
-    padding: 12px 8px;
-    border-bottom: 1px solid var(--line);
-    font-size: 11px;
-    text-decoration: none;
-    transition: background .2s ease;
-  }
-
-  .fbprivacy-sidebar li a > span {
-    color: var(--accent);
-    font-size: 9px;
-  }
-
-  .fbprivacy-sidebar li a:hover {
-    background: var(--lime);
-  }
-
-  .fbprivacy-request {
-    margin-top: 28px;
-    padding: 25px;
-    border: 1px solid var(--ink);
-    background: var(--lime);
-  }
-
-  .fbprivacy-request h2 {
-    margin: 16px 0;
-    font-size: 36px;
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.055em;
-  }
-
-  .fbprivacy-request > p:last-of-type {
-    margin: 0;
-    font-size: 11px;
-    line-height: 1.9;
-  }
-
-  .fbprivacy-request a {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    min-height: 44px;
-    margin-top: 18px;
-    border-bottom: 1px solid var(--ink);
-    font-size: 12px;
-    font-weight: 600;
-    text-decoration: none;
-  }
-
-  .fbprivacy-document {
-    min-width: 0;
-    border: 1px solid var(--ink);
-    background: var(--paper);
-    animation: fbprivacyEnter .6s .08s both;
-  }
-
-  .fbprivacy-document-label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 23px 30px;
-    border-bottom: 1px solid var(--ink);
-    background: var(--lime);
-  }
-
-  .fbprivacy-document-label > span:last-child {
-    font-size: 10px;
-  }
-
-  .fbprivacy-section {
-    padding: clamp(25px, 3.5vw, 45px);
-    border-bottom: 1px solid var(--line);
-    scroll-margin-top: 110px;
-  }
-
-  .fbprivacy-section:target {
-    background: #f1f4e8;
-  }
-
-  .fbprivacy-section-heading {
-    display: grid;
-    grid-template-columns: 30px minmax(0, 1fr);
-    gap: 17px;
-    align-items: start;
-    margin-bottom: 22px;
-  }
-
-  .fbprivacy-section-heading > span {
-    padding-top: 6px;
-    color: var(--accent);
-    font-size: 11px;
-  }
-
-  .fbprivacy-section h2 {
-    margin: 0;
-    font-size: clamp(25px, 2.7vw, 35px);
-    font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: -.045em;
-  }
-
-  .fbprivacy-section-body {
-    padding-left: 47px;
-    min-width: 0;
-  }
-
-  .fbprivacy-section-body p,
-  .fbprivacy-section-body address {
-    margin: 0 0 15px;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.9;
-    overflow-wrap: anywhere;
-  }
-
-  .fbprivacy-section-body > p:last-child {
-    margin-bottom: 0;
-  }
-
-  .fbprivacy-section-body p a {
-    color: var(--ink);
-    font-weight: 600;
-  }
-
-  .fbprivacy-section-body ul {
-    margin: 18px 0 22px;
-    padding-left: 19px;
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.9;
-  }
-
-  .fbprivacy-section-body ul:last-child {
-    margin-bottom: 0;
-  }
-
-  .fbprivacy-section-body li {
-    padding-block: 5px;
-  }
-
-  .fbprivacy-business {
-    display: grid;
-    justify-items: start;
-    gap: 12px;
-  }
-
-  .fbprivacy-business > strong {
-    font-size: 18px;
-    font-weight: 600;
-  }
-
-  .fbprivacy-business address,
-  .fbprivacy-business p {
-    margin: 0;
-  }
-
-  .fbprivacy-business address {
-    font-style: normal;
-  }
-
-  .fbprivacy-business a {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    max-width: 100%;
-    min-height: 44px;
-    font-size: 13px;
-    text-decoration: none;
-  }
-
-  .fbprivacy-business a > span {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-
-  .fbprivacy-business svg {
-    flex-shrink: 0;
-  }
-
-  .fbprivacy-business a:hover {
-    color: var(--accent);
-  }
-
-  .fbprivacy-document-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px 20px;
-    padding: 20px 30px;
-    font-size: 10px;
-  }
-
-  .fbprivacy-document-footer a {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 44px;
-    text-decoration: none;
-  }
-
-  .fbprivacy-help {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 30px;
-    margin-top: 35px;
-    padding: clamp(25px, 4vw, 50px);
-    border-top: 1px solid var(--ink);
-    border-bottom: 1px solid var(--ink);
-  }
-
-  .fbprivacy-help h2 {
-    max-width: 750px;
-    margin: 16px 0;
-    font-size: clamp(30px, 3.5vw, 47px);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.055em;
-  }
-
-  .fbprivacy-help div > p:last-child {
-    margin: 0;
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.8;
-  }
-
-  .fbprivacy-help > a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-    gap: 25px;
-    min-height: 54px;
-    padding: 15px 22px;
-    background: var(--ink);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: transform .2s ease;
-  }
-
-  .fbprivacy-help > a:hover {
-    transform: translateY(-2px);
-  }
-
-  @keyframes fbprivacyEnter {
-    from { opacity: 0; transform: translateY(18px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 1050px) {
-    .fbprivacy-layout {
-      grid-template-columns: 230px minmax(0, 1fr);
-      gap: 25px;
-    }
-
-    .fbprivacy-section {
-      padding: 30px 25px;
-    }
-
-    .fbprivacy-section-body {
-      padding-left: 0;
-    }
-  }
-
-  @media (max-width: 800px) {
-    .fbprivacy-header {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 30px;
-    }
-
-    .fbprivacy-introduction {
-      border-left: 0;
-      border-top: 1px solid var(--ink);
-      padding: 25px 0 0;
-    }
-
-    .fbprivacy-layout {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 28px;
-    }
-
-    .fbprivacy-sidebar ol {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0 20px;
-    }
-
-    .fbprivacy-help {
-      flex-direction: column;
-      align-items: stretch;
-      padding-inline: 0;
-    }
-
-    .fbprivacy-help > a {
-      width: 100%;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .fbprivacy-header h1 {
-      font-size: clamp(55px, 16vw, 76px);
-    }
-
-    .fbprivacy-sidebar ol {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .fbprivacy-document-label {
-      padding: 20px;
-    }
-
-    .fbprivacy-section {
-      padding: 27px 20px;
-    }
-
-    .fbprivacy-section-heading {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 10px;
-    }
-
-    .fbprivacy-section-heading > span {
-      padding-top: 0;
-    }
-
-    .fbprivacy-section h2 {
-      font-size: 28px;
-    }
-
-    .fbprivacy-section-body p,
-    .fbprivacy-section-body address {
-      font-size: 13px;
-    }
-
-    .fbprivacy-document-footer {
-      padding: 18px 20px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .fbprivacy-page *,
-    .fbprivacy-page *::before,
-    .fbprivacy-page *::after {
-      animation: none !important;
-      transition: none !important;
-    }
-  }
-`;
 
 export default PrivacyPolicy;

@@ -1,6 +1,8 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 
+import storeInfo from "./storeInfo";
+
 import { CartProvider } from "./component/CartContext";
 import ScrollToTop from "./component/ScrollToTop";
 import AdminRoute from "./component/AdminRoute";
@@ -31,6 +33,89 @@ import Dashboard from "./component/Admin/Dashboard";
 import Products from "./component/Admin/Products";
 import Orders from "./component/Admin/Orders";
 import Users from "./component/Admin/Users";
+
+const NotFound = () => (
+  <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-chalk px-4 py-12 text-ink sm:px-6">
+    {/* Soft background fabric fold */}
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute -right-32 -top-32 size-[420px] rounded-full bg-wine-soft blur-3xl sm:size-[560px]"
+    />
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute -bottom-40 -left-24 size-[360px] rounded-full bg-linen blur-3xl"
+    />
+
+    <div className="relative w-full max-w-2xl perspective-distant">
+      <div className="animate-fold-in border border-line bg-paper shadow-[0_30px_80px_-40px_rgba(36,34,35,0.45)]">
+        {/* Care-label style header */}
+        <div className="flex items-center justify-between gap-4 border-b border-dashed border-line px-5 py-4 sm:px-10 sm:py-5">
+          <Link
+            to="/"
+            className="font-serif text-2xl lowercase leading-none tracking-tight transition-colors hover:text-wine"
+          >
+            {storeInfo.businessName}
+            <span className="text-wine">✳</span>
+          </Link>
+
+          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
+            Page unavailable
+          </span>
+        </div>
+
+        <div className="px-5 py-10 sm:px-10 sm:py-14">
+          <p className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-wine sm:text-xs">
+            <span className="h-px w-8 bg-wine" aria-hidden="true" />
+            Lost between the layers
+          </p>
+
+          <h1 className="mt-5 font-serif text-[96px] leading-none tracking-tight sm:text-[150px]">
+            4
+            <em className="inline-block animate-spin-y text-wine [animation-delay:300ms]">
+              0
+            </em>
+            4
+          </h1>
+
+          <h2 className="mt-4 font-serif text-3xl leading-tight sm:text-4xl">
+            This page has been <em className="text-wine">folded away.</em>
+          </h2>
+
+          <p className="mt-4 max-w-md text-sm leading-7 text-muted sm:text-base">
+            The page you&apos;re looking for doesn&apos;t exist or may have
+            been moved. Let&apos;s take you somewhere more comfortable.
+          </p>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link
+              to="/"
+              className="group inline-flex min-h-12 items-center justify-between gap-8 bg-ink px-6 py-4 text-sm font-semibold text-paper transition-colors duration-300 hover:bg-wine"
+            >
+              Back to home
+              <span
+                aria-hidden="true"
+                className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+              >
+                ↗
+              </span>
+            </Link>
+
+            <Link
+              to="/shop"
+              className="inline-flex min-h-12 items-center justify-center border border-ink px-6 py-4 text-sm font-semibold transition-colors duration-300 hover:border-wine hover:text-wine"
+            >
+              Shop bedding
+            </Link>
+          </div>
+        </div>
+
+        <div className="border-t border-dashed border-line bg-linen px-5 py-4 sm:px-10">
+          <p className="text-xs text-ink-soft">{storeInfo.tagline}</p>
+        </div>
+      </div>
+    </div>
+  </main>
+);
 
 const App = () => {
   return (
@@ -250,65 +335,7 @@ const App = () => {
             }
           />
 
-          <Route
-            path="*"
-            element={
-              <main
-                className="flex min-h-screen items-center justify-center bg-[#FFFAF3] px-5 py-12 text-[#17243B]"
-                style={{
-                  fontFamily: "'Onest', sans-serif",
-                }}
-              >
-                <div className="w-full max-w-2xl border border-[#17243B]/25 bg-[#FFFAF3] shadow-[10px_10px_0_#EADCC8] sm:shadow-[16px_16px_0_#EADCC8]">
-                  <div className="flex items-center justify-between gap-4 border-b border-[#17243B]/25 px-6 py-5 sm:px-10">
-                    <Link
-                      to="/"
-                      className="text-sm font-semibold tracking-tight transition-colors hover:text-[#B58A50] sm:text-base"
-                    >
-                      FableBelle.com
-                    </Link>
-
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#535B67]">
-                      Page unavailable
-                    </span>
-                  </div>
-
-                  <div className="px-6 py-12 sm:px-10 sm:py-16">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B58A50] sm:text-xs">
-                      A little off course
-                    </p>
-
-                    <h1 className="mt-5 text-[100px] font-medium leading-none tracking-[-0.08em] sm:text-[150px]">
-                      404<span className="text-[#B58A50]">.</span>
-                    </h1>
-
-                    <h2 className="mt-6 text-3xl font-medium leading-tight tracking-[-0.05em] sm:text-4xl">
-                      Let&apos;s find your way back.
-                    </h2>
-
-                    <p className="mt-4 max-w-md text-sm leading-7 text-[#535B67] sm:text-base">
-                      The page you&apos;re looking for doesn&apos;t exist or
-                      may have been moved.
-                    </p>
-
-                    <Link
-                      to="/"
-                      className="mt-8 inline-flex min-h-12 items-center justify-between gap-10 border border-[#17243B] bg-[#17243B] px-6 py-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#263956] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#B58A50]"
-                    >
-                      Back to home
-                      <span aria-hidden="true">↗</span>
-                    </Link>
-                  </div>
-
-                  <div className="border-t border-[#17243B]/25 bg-[#EADCC8] px-6 py-4 sm:px-10">
-                    <p className="text-xs text-[#17243B]">
-                      Thoughtfully carried, clearly explained.
-                    </p>
-                  </div>
-                </div>
-              </main>
-            }
-          />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </CartProvider>
     </BrowserRouter>

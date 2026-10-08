@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 import { API_BASE_URL } from "../../config";
-import storeInfo from "../../storeInfo";
+import storeInfo, { STORAGE_KEYS } from "../../storeInfo";
 
 const USERS_API_URL = `${API_BASE_URL}/api/users`;
 const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
@@ -79,517 +79,65 @@ const getInitials = (name) =>
     .join("")
     .toUpperCase() || "?";
 
-const styles = `
-  .fbusers {
-    --forest: #173f36;
-    --deep: #102e28;
-    --pistachio: #d7e5a5;
-    --bone: #f5f0e6;
-    --paper: #fffdf5;
-    --brass: #a56e4f;
-    --muted: #68776f;
-    --line: #dde1d5;
-    min-height: 100vh;
-    padding: 36px 24px 64px;
-    background: var(--bone);
-    color: var(--deep);
-    font-family: "Onest", Arial, sans-serif;
-  }
 
-  .fbusers *, .fbusers *::before, .fbusers *::after {
-    box-sizing: border-box;
-  }
+const eyebrowClass = "text-[10px] font-bold uppercase tracking-[0.2em] text-wine";
 
-  .fbusers button, .fbusers input, .fbusers select {
-    font: inherit;
-  }
+/* Order status colours (matches Dashboard + Orders) */
+const STATUS_DOT = {
+  pending: "#c9b28f",
+  processing: "#8a5a5f",
+  shipped: "#2b2523",
+  delivered: "#4f7a5a",
+  cancelled: "#a33a3a",
+  canceled: "#a33a3a",
+};
 
-  .fbusers button { cursor: pointer; }
-  .fbusers button:disabled { cursor: wait; opacity: .55; }
-  .fbusers button, .fbusers a, .fbusers input, .fbusers select {
-    -webkit-tap-highlight-color: transparent;
-  }
+const statusDot = (status) =>
+  STATUS_DOT[getText(status).trim().toLowerCase()] || "#b9b0a6";
 
-  .fbusers :focus-visible {
-    outline: 3px solid var(--brass);
-    outline-offset: 4px;
-  }
+const RoleBadge = ({ role, tone = "light" }) => (
+  <span
+    className={`inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] [overflow-wrap:anywhere] ${
+      role === "Admin"
+        ? "bg-wine text-paper"
+        : tone === "dark"
+          ? "bg-paper/15 text-paper"
+          : "bg-linen text-ink"
+    }`}
+  >
+    {role === "Admin" && <ShieldCheck size={12} aria-hidden="true" />}
+    {role}
+  </span>
+);
 
-  .fbusers-shell { max-width: 1440px; margin: auto; }
-  .fbusers-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 24px;
-    margin-bottom: 28px;
-  }
+/* Card that tilts in 3D with the mouse (desktop only) */
+const TiltCard = ({ children, strength = 1 }) => {
+  const ref = useRef(null);
 
-  .fbusers-eyebrow {
-    margin: 0 0 12px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .16em;
-    text-transform: uppercase;
-    color: var(--brass);
-  }
+  const handleMove = (event) => {
+    const element = ref.current;
+    if (!element) return;
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-  .fbusers h1 {
-    margin: 0;
-    font-size: clamp(32px, 4vw, 52px);
-    line-height: 1.08;
-    letter-spacing: -.055em;
-    font-weight: 600;
-    overflow-wrap: anywhere;
-  }
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    element.style.transform = `rotateX(${-y * 10 * strength}deg) rotateY(${x * 12 * strength}deg)`;
+  };
 
-  .fbusers-subtitle {
-    margin: 13px 0 0;
-    max-width: 530px;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.7;
-  }
+  const handleLeave = () => {
+    if (ref.current) ref.current.style.transform = "";
+  };
 
-  .fbusers-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 9px;
-    min-height: 44px;
-    padding: 12px 18px;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: var(--paper);
-    color: var(--forest);
-    font-size: 13px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: background .2s, transform .2s;
-  }
-
-  .fbusers-button:hover:not(:disabled) {
-    background: var(--pistachio);
-    transform: translateY(-2px);
-  }
-
-  .fbusers-overview {
-    display: grid;
-    grid-template-columns: 1.3fr repeat(3, 1fr);
-    padding: 26px 12px;
-    margin-bottom: 28px;
-    border-radius: 16px;
-    background: var(--forest);
-    color: var(--paper);
-  }
-
-  .fbusers-stat {
-    min-width: 0;
-    padding: 0 24px;
-    border-right: 1px solid #ffffff24;
-  }
-
-  .fbusers-stat:last-child { border: 0; }
-  .fbusers-stat small {
-    display: block;
-    color: #e0e7d2;
-    font-size: 11px;
-    line-height: 1.5;
-  }
-
-  .fbusers-stat strong {
-    display: block;
-    margin-top: 9px;
-    font-size: clamp(22px, 2.5vw, 32px);
-    letter-spacing: -.04em;
-    font-weight: 500;
-    overflow-wrap: anywhere;
-  }
-
-  .fbusers-stat:first-child strong { color: var(--pistachio); }
-  .fbusers-controls {
-    display: grid;
-    grid-template-columns: minmax(220px, 1fr) auto;
-    gap: 16px;
-    align-items: center;
-  }
-
-  .fbusers-search { position: relative; }
-  .fbusers-search svg {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    pointer-events: none;
-  }
-
-  .fbusers-search input, .fbusers-sort select {
-    width: 100%;
-    min-height: 48px;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: var(--paper);
-    color: var(--deep);
-    font-size: 13px;
-  }
-
-  .fbusers-search input { padding: 13px 16px 13px 45px; }
-  .fbusers-sort {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .fbusers-sort select { padding: 12px; width: 190px; }
-  .fbusers-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 20px 0;
-  }
-
-  .fbusers-tab {
-    min-height: 42px;
-    padding: 9px 16px;
-    border: 1px solid var(--line);
-    border-radius: 30px;
-    background: transparent;
-    color: var(--muted);
-    font-size: 12px;
-    transition: background .2s, color .2s;
-  }
-
-  .fbusers-tab[aria-pressed="true"] {
-    color: var(--paper);
-    background: var(--forest);
-    border-color: var(--forest);
-  }
-
-  .fbusers-results {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin: 0 0 18px;
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .fbusers-reset {
-    border: 0;
-    padding: 8px 0;
-    background: transparent;
-    color: var(--forest);
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
-
-  .fbusers-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
-  }
-
-  .fbusers-card {
-    min-width: 0;
-    padding: 24px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: var(--paper);
-    animation: fbusers-enter .35s ease both;
-    transition: transform .2s, box-shadow .2s;
-  }
-
-  .fbusers-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 14px 30px #102e280a;
-  }
-
-  .fbusers-card-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .fbusers-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 54px;
-    height: 54px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: var(--bone);
-    color: var(--forest);
-    font-size: 17px;
-    font-weight: 600;
-  }
-
-  .fbusers-role {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 7px 10px;
-    border-radius: 30px;
-    background: var(--bone);
-    color: var(--forest);
-    font-size: 10px;
-    font-weight: 600;
-    overflow-wrap: anywhere;
-  }
-
-  .fbusers-role-admin { background: var(--pistachio); }
-  .fbusers-card h2 {
-    margin: 20px 0 6px;
-    font-size: 19px;
-    letter-spacing: -.03em;
-    font-weight: 600;
-    overflow-wrap: anywhere;
-  }
-
-  .fbusers-email {
-    margin: 0;
-    color: var(--muted);
-    font-size: 12px;
-    line-height: 1.6;
-    overflow-wrap: anywhere;
-  }
-
-  .fbusers-card-metrics {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr;
-    gap: 15px;
-    margin: 22px 0;
-    padding: 18px 0;
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fbusers-card-metrics small, .fbusers-field dt {
-    display: block;
-    color: var(--muted);
-    font-size: 10px;
-    line-height: 1.5;
-  }
-
-  .fbusers-card-metrics strong {
-    display: block;
-    margin-top: 6px;
-    font-size: 18px;
-    font-weight: 600;
-    overflow-wrap: anywhere;
-  }
-
-  .fbusers-card-footer {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .fbusers-card-footer span { color: var(--muted); font-size: 10px; }
-  .fbusers-open {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-height: 44px;
-    padding: 8px 0 8px 8px;
-    border: 0;
-    background: transparent;
-    color: var(--forest);
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  .fbusers-alert {
-    margin-bottom: 22px;
-    padding: 16px 18px;
-    border: 1px solid #d7b8a6;
-    border-radius: 10px;
-    background: #fff4ec;
-    color: #7c3e23;
-    font-size: 13px;
-    line-height: 1.6;
-  }
-
-  .fbusers-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 260px;
-    padding: 35px 20px;
-    text-align: center;
-    border: 1px dashed var(--line);
-    border-radius: 16px;
-    background: var(--paper);
-    color: var(--muted);
-  }
-
-  .fbusers-empty h2 { color: var(--deep); font-size: 20px; }
-  .fbusers-empty p { font-size: 13px; line-height: 1.7; }
-  .fbusers-back { margin-bottom: 24px; }
-  .fbusers-profile {
-    display: grid;
-    grid-template-columns: minmax(250px, .85fr) minmax(0, 1.7fr);
-    gap: 24px;
-    align-items: start;
-    animation: fbusers-enter .3s ease both;
-  }
-
-  .fbusers-identity {
-    padding: 30px;
-    border-radius: 16px;
-    background: var(--forest);
-    color: var(--paper);
-  }
-
-  .fbusers-identity .fbusers-avatar {
-    width: 78px;
-    height: 78px;
-    font-size: 26px;
-    background: var(--pistachio);
-  }
-
-  .fbusers-identity h2 {
-    margin: 24px 0 8px;
-    font-size: 28px;
-    line-height: 1.2;
-    font-weight: 500;
-    letter-spacing: -.04em;
-    overflow-wrap: anywhere;
-  }
-
-  .fbusers-identity .fbusers-email { color: #e0e7d2; }
-  .fbusers-identity .fbusers-role { margin-top: 18px; }
-  .fbusers-fields { margin: 30px 0 0; }
-  .fbusers-field { padding: 17px 0; border-top: 1px solid #ffffff24; }
-  .fbusers-field dt { color: #d0dccf; }
-  .fbusers-field dd {
-    margin: 7px 0 0;
-    font-size: 13px;
-    line-height: 1.6;
-    overflow-wrap: anywhere;
-  }
-
-  .fbusers-field dt {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-
-  .fbusers-panel {
-    min-width: 0;
-    padding: 28px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: var(--paper);
-  }
-
-  .fbusers-panel h2 {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -.03em;
-  }
-
-  .fbusers-activity {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    padding-bottom: 25px;
-    margin-bottom: 26px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fbusers-activity small { color: var(--muted); font-size: 11px; }
-  .fbusers-activity strong {
-    display: block;
-    margin-top: 9px;
-    font-size: clamp(24px, 3vw, 34px);
-    font-weight: 500;
-    letter-spacing: -.04em;
-    overflow-wrap: anywhere;
-  }
-
-  .fbusers-note { color: var(--muted); font-size: 11px; line-height: 1.7; }
-  .fbusers-history { margin-top: 20px; }
-  .fbusers-order {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 16px;
-    padding: 18px 0;
-    border-top: 1px solid var(--line);
-  }
-
-  .fbusers-order strong {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    overflow-wrap: anywhere;
-  }
-
-  .fbusers-order small {
-    display: block;
-    margin-top: 7px;
-    color: var(--muted);
-    font-size: 11px;
-  }
-
-  .fbusers-order-value { text-align: right; }
-  .fbusers-spin { animation: fbusers-spin 1s linear infinite; }
-  @keyframes fbusers-spin { to { transform: rotate(360deg); } }
-  @keyframes fbusers-enter {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 1100px) {
-    .fbusers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .fbusers-stat { padding: 0 16px; }
-  }
-
-  @media (max-width: 760px) {
-    .fbusers { padding: 24px 16px 44px; }
-    .fbusers-header { align-items: flex-start; }
-    .fbusers-overview {
-      grid-template-columns: 1fr 1fr;
-      padding: 8px 18px;
-    }
-    .fbusers-stat { padding: 18px 12px; }
-    .fbusers-stat:nth-child(2) { border-right: 0; }
-    .fbusers-stat:nth-child(-n+2) { border-bottom: 1px solid #ffffff24; }
-    .fbusers-controls { grid-template-columns: 1fr; }
-    .fbusers-sort { justify-content: space-between; }
-    .fbusers-sort select { width: min(75%, 260px); }
-    .fbusers-profile { grid-template-columns: 1fr; }
-    .fbusers-identity, .fbusers-panel { padding: 24px; }
-  }
-
-  @media (max-width: 480px) {
-    .fbusers-header { flex-direction: column; gap: 18px; }
-    .fbusers-grid { grid-template-columns: 1fr; }
-    .fbusers-card { padding: 22px; }
-    .fbusers-overview { padding: 6px; }
-    .fbusers-stat { padding: 17px 12px; }
-    .fbusers-activity { gap: 12px; }
-    .fbusers-identity, .fbusers-panel { padding: 20px; }
-    .fbusers-results { align-items: flex-start; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .fbusers *, .fbusers *::before, .fbusers *::after {
-      animation: none !important;
-      transition: none !important;
-      scroll-behavior: auto !important;
-    }
-  }
-`;
+  return (
+    <div onMouseMove={handleMove} onMouseLeave={handleLeave} className="h-full perspective-[1200px]">
+      <div ref={ref} className="h-full transform-3d transition-transform duration-500 ease-soft">
+        {children}
+      </div>
+    </div>
+  );
+};
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -619,7 +167,7 @@ const Users = () => {
       setErrorMessage("");
 
       try {
-        const token = localStorage.getItem("fablebelle-token");
+        const token = localStorage.getItem(STORAGE_KEYS.token);
 
         if (!token) {
           throw new Error("Please sign in with your admin account.");
@@ -807,379 +355,401 @@ const Users = () => {
     setSortBy("Newest");
   };
 
+
   const refreshButton = (
     <button
       type="button"
-      className="fbusers-button"
       disabled={loading}
       onClick={() => setRefreshCount((count) => count + 1)}
+      className="inline-flex min-h-12 w-full shrink-0 items-center justify-center gap-2.5 border border-line bg-paper px-5 text-xs font-semibold text-ink transition-colors hover:border-ink disabled:cursor-wait disabled:opacity-55 sm:w-auto"
     >
-      <RefreshCw
-        size={15}
-        aria-hidden="true"
-        className={loading ? "fbusers-spin" : ""}
-      />
+      <RefreshCw size={15} aria-hidden="true" className={loading ? "animate-spin" : ""} />
       {loading ? "Refreshing…" : "Refresh"}
     </button>
   );
 
+  const roleCount = (role) =>
+    role === "All"
+      ? userDirectory.length
+      : userDirectory.filter((user) => user.roleLabel === role).length;
+
   return (
-    <section className="fbusers">
-      <style>{styles}</style>
+    <div className="min-w-0 font-sans text-ink">
+      {selectedUser ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setSelectedId("")}
+            className="group mb-5 inline-flex min-h-11 items-center gap-2 text-xs font-semibold text-ink hover:text-wine"
+          >
+            <ArrowLeft size={16} aria-hidden="true" className="transition-transform duration-300 group-hover:-translate-x-1" />
+            Back to directory
+          </button>
 
-      <div className="fbusers-shell">
-        {selectedUser ? (
-          <>
-            <button
-              type="button"
-              className="fbusers-button fbusers-back"
-              onClick={() => setSelectedId("")}
-            >
-              <ArrowLeft size={16} aria-hidden="true" />
-              Back to directory
-            </button>
-
-            <header className="fbusers-header">
-              <div>
-                <p className="fbusers-eyebrow">
-                  {brandName} / Account profile
-                </p>
-                <h1 ref={profileHeadingRef} tabIndex={-1}>
-                  Account overview
-                </h1>
-                <p className="fbusers-subtitle">
-                  Registration details and linked order activity.
-                </p>
-              </div>
-
-              {refreshButton}
-            </header>
-          </>
-        ) : (
-          <header className="fbusers-header">
+          <header className="flex flex-col items-start justify-between gap-5 border-b border-line pb-6 sm:flex-row sm:items-end">
             <div>
-              <p className="fbusers-eyebrow">
-                {brandName} / Administration
-              </p>
-              <h1 ref={directoryHeadingRef} tabIndex={-1}>
-                People & accounts
+              <p className={`${eyebrowClass} animate-rise`}>{brandName} / Account profile</p>
+              <h1
+                ref={profileHeadingRef}
+                tabIndex={-1}
+                className="mt-2 scroll-mt-28 font-serif text-[clamp(38px,5vw,64px)] leading-[0.95] tracking-[-0.03em] outline-none perspective-distant"
+              >
+                <span className="inline-block animate-fold-in">Account</span>{" "}
+                <em className="inline-block animate-fold-in text-wine [animation-delay:120ms]">overview</em>
               </h1>
-              <p className="fbusers-subtitle">
-                Explore registered accounts and their activity across the store.
-              </p>
+              <p className="mt-3 text-sm text-muted">Registration details and linked order activity.</p>
             </div>
-
             {refreshButton}
           </header>
-        )}
-
-        {errorMessage && (
-          <div className="fbusers-alert" role="alert">
-            {errorMessage}
-            {hasLoaded && " Previously loaded data is still displayed."}
+        </>
+      ) : (
+        <header className="flex flex-col items-start justify-between gap-5 border-b border-line pb-6 sm:flex-row sm:items-end">
+          <div>
+            <p className={`${eyebrowClass} animate-rise`}>{brandName} / Administration</p>
+            <h1
+              ref={directoryHeadingRef}
+              tabIndex={-1}
+              className="mt-2 scroll-mt-28 font-serif text-[clamp(38px,5vw,64px)] leading-[0.95] tracking-[-0.03em] outline-none perspective-distant"
+            >
+              <span className="inline-block animate-fold-in">People</span>{" "}
+              <em className="inline-block animate-fold-in text-wine [animation-delay:120ms]">&amp; accounts</em>
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-muted">
+              Explore registered accounts and their activity across the store.
+            </p>
           </div>
-        )}
+          {refreshButton}
+        </header>
+      )}
 
-        {selectedUser ? (
-          <div className="fbusers-profile" aria-busy={loading}>
-            <aside className="fbusers-identity">
-              <div className="fbusers-avatar" aria-hidden="true">
-                {getInitials(selectedUser.name)}
+      {errorMessage && (
+        <div className="mt-5 border border-danger/30 border-l-4 border-l-danger bg-danger/5 px-5 py-4 text-sm text-danger" role="alert">
+          {errorMessage}
+          {hasLoaded && " Previously loaded data is still displayed."}
+        </div>
+      )}
+
+      {selectedUser ? (
+        /* ============ Profile ============ */
+        <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.7fr)]" aria-busy={loading}>
+          <aside className="animate-rise lg:sticky lg:top-28">
+            {/* membership card */}
+            <TiltCard strength={1.3}>
+              <div className="relative overflow-hidden bg-ink p-6 text-paper shadow-[0_40px_60px_-35px_rgba(0,0,0,0.7)] sm:p-7">
+                <span aria-hidden="true" className="absolute -right-16 -top-16 size-48 rounded-full border border-dashed border-sand/25" />
+                <span aria-hidden="true" className="absolute -bottom-10 -left-10 size-32 rotate-12 bg-wine/40" />
+
+                <div className="relative flex items-start justify-between gap-3">
+                  <div className="grid size-20 place-items-center rounded-full bg-wine font-serif text-3xl text-paper ring-4 ring-paper/10" aria-hidden="true">
+                    {getInitials(selectedUser.name)}
+                  </div>
+                  <span className="font-serif text-xl italic text-paper/40">{brandName}</span>
+                </div>
+
+                <h2 className="relative mt-6 font-serif text-3xl leading-tight [overflow-wrap:anywhere]">
+                  {getText(selectedUser.name) || "Unnamed account"}
+                </h2>
+                <p className="relative mt-1 text-sm text-paper/60 [overflow-wrap:anywhere]">
+                  {getText(selectedUser.email) || "Email not provided"}
+                </p>
+                <div className="relative mt-4">
+                  <RoleBadge role={selectedUser.roleLabel} tone="dark" />
+                </div>
+
+                <dl className="relative mt-7">
+                  {[
+                    [Mail, "Email address", getText(selectedUser.email) || "—"],
+                    [CalendarDays, "Registered on", formatDate(selectedUser.createdAt)],
+                    [null, "Account ID", selectedUser.accountId],
+                  ].map(([Icon, label, value]) => (
+                    <div key={label} className="border-t border-paper/15 py-4">
+                      <dt className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-paper/50">
+                        {Icon && <Icon size={13} aria-hidden="true" />}
+                        {label}
+                      </dt>
+                      <dd className="mt-1.5 text-sm [overflow-wrap:anywhere]">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
+            </TiltCard>
+          </aside>
 
-              <h2>{getText(selectedUser.name) || "Unnamed account"}</h2>
-
-              <p className="fbusers-email">
-                {getText(selectedUser.email) || "Email not provided"}
-              </p>
-
-              <span
-                className={`fbusers-role ${
-                  selectedUser.roleLabel === "Admin"
-                    ? "fbusers-role-admin"
-                    : ""
-                }`}
-              >
-                {selectedUser.roleLabel === "Admin" && (
-                  <ShieldCheck size={12} aria-hidden="true" />
-                )}
-                {selectedUser.roleLabel}
-              </span>
-
-              <dl className="fbusers-fields">
-                <div className="fbusers-field">
-                  <dt>
-                    <Mail size={13} aria-hidden="true" />
-                    Email address
-                  </dt>
-                  <dd>{getText(selectedUser.email) || "—"}</dd>
-                </div>
-
-                <div className="fbusers-field">
-                  <dt>
-                    <CalendarDays size={13} aria-hidden="true" />
-                    Registered on
-                  </dt>
-                  <dd>{formatDate(selectedUser.createdAt)}</dd>
-                </div>
-
-                <div className="fbusers-field">
-                  <dt>Account ID</dt>
-                  <dd>{selectedUser.accountId}</dd>
-                </div>
-              </dl>
-            </aside>
-
-            <div className="fbusers-panel">
-              <div className="fbusers-activity">
-                <div>
-                  <small>Total orders</small>
-                  <strong>{selectedUser.orderCount}</strong>
-                </div>
-
-                <div>
-                  <small>Non-cancelled order value</small>
-                  <strong>{formatMoney(selectedUser.orderValue)}</strong>
-                </div>
+          <div className="min-w-0 animate-rise border border-line bg-paper [animation-delay:120ms]">
+            <div className="grid grid-cols-2 gap-px border-b border-line bg-line">
+              <div className="bg-paper p-5 sm:p-6">
+                <small className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Total orders</small>
+                <strong className="mt-2 block font-serif text-[clamp(34px,4vw,48px)] font-normal leading-none">
+                  {selectedUser.orderCount}
+                </strong>
               </div>
+              <div className="bg-linen/60 p-5 sm:p-6">
+                <small className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Non-cancelled order value</small>
+                <strong className="mt-2 block font-serif text-[clamp(28px,4vw,48px)] font-normal leading-none [overflow-wrap:anywhere]">
+                  {formatMoney(selectedUser.orderValue)}
+                </strong>
+              </div>
+            </div>
 
-              <h2>Order history</h2>
-
-              <p className="fbusers-note">
+            <div className="p-5 sm:p-6">
+              <h2 className="font-serif text-2xl sm:text-[28px]">Order history</h2>
+              <p className="mt-1 text-xs leading-relaxed text-muted">
                 Order value excludes cancelled orders and does not confirm
                 payment collection.
               </p>
 
               {selectedUser.userOrders.length > 0 ? (
-                <div className="fbusers-history">
+                <ol className="relative mt-6 border-l border-line pl-6">
                   {selectedUser.userOrders.map((order, index) => (
-                    <article
-                      className="fbusers-order"
+                    <li
                       key={getId(order) || `order-${index}`}
+                      style={{ animationDelay: `${Math.min(index, 10) * 60}ms` }}
+                      className="relative animate-rise pb-5 last:pb-0"
                     >
-                      <div>
-                        <strong>
-                          {order.orderNumber != null
-                            ? String(order.orderNumber)
-                            : getId(order) || "Order"}
-                        </strong>
-                        <small>{formatDate(order.createdAt)}</small>
-                      </div>
-
-                      <div className="fbusers-order-value">
-                        <strong>{formatMoney(order.totalAmount)}</strong>
-                        <small>{getText(order.status) || "Unknown status"}</small>
-                      </div>
-                    </article>
+                      <span
+                        aria-hidden="true"
+                        className="absolute -left-[31px] top-4 size-3 rounded-full ring-4 ring-paper"
+                        style={{ background: statusDot(order.status) }}
+                      />
+                      <article className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border border-line p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-ink">
+                        <div className="min-w-0">
+                          <strong className="block text-sm font-semibold [overflow-wrap:anywhere]">
+                            {order.orderNumber != null
+                              ? String(order.orderNumber)
+                              : getId(order) || "Order"}
+                          </strong>
+                          <small className="mt-1 block text-[11px] text-muted">{formatDate(order.createdAt)}</small>
+                        </div>
+                        <div className="text-right">
+                          <strong className="block font-serif text-xl font-normal">{formatMoney(order.totalAmount)}</strong>
+                          <small className="mt-0.5 inline-flex items-center gap-1.5 text-[11px] text-muted">
+                            <span className="size-1.5 rounded-full" style={{ background: statusDot(order.status) }} />
+                            {getText(order.status) || "Unknown status"}
+                          </small>
+                        </div>
+                      </article>
+                    </li>
                   ))}
-                </div>
+                </ol>
               ) : (
-                <div className="fbusers-empty">
-                  <ShoppingBag size={28} aria-hidden="true" />
-                  <h2>No linked orders</h2>
-                  <p>This account has no linked order activity yet.</p>
+                <div className="mt-6 flex min-h-56 flex-col items-center justify-center gap-2 border border-dashed border-line p-8 text-center text-muted">
+                  <ShoppingBag size={28} aria-hidden="true" className="text-wine" />
+                  <h2 className="font-serif text-2xl text-ink">No linked orders</h2>
+                  <p className="text-sm">This account has no linked order activity yet.</p>
                 </div>
               )}
             </div>
           </div>
-        ) : (
-          <>
-            <div className="fbusers-overview" aria-label="Account summary">
-              <div className="fbusers-stat">
-                <small>Registered accounts</small>
-                <strong>{hasLoaded ? users.length : "—"}</strong>
-              </div>
-
-              <div className="fbusers-stat">
-                <small>Customers</small>
-                <strong>{hasLoaded ? customerCount : "—"}</strong>
-              </div>
-
-              <div className="fbusers-stat">
-                <small>Administrators</small>
-                <strong>{hasLoaded ? adminCount : "—"}</strong>
-              </div>
-
-              <div className="fbusers-stat">
-                <small>All non-cancelled order value</small>
-                <strong>
-                  {hasLoaded ? formatMoney(totalOrderValue) : "—"}
+        </div>
+      ) : (
+        <>
+          {/* ============ Overview ============ */}
+          <div aria-label="Account summary" className="mt-6 grid grid-cols-2 gap-px border border-line bg-line lg:grid-cols-4">
+            {[
+              ["Registered accounts", hasLoaded ? users.length : "—"],
+              ["Customers", hasLoaded ? customerCount : "—"],
+              ["Administrators", hasLoaded ? adminCount : "—"],
+              ["All non-cancelled order value", hasLoaded ? formatMoney(totalOrderValue) : "—"],
+            ].map(([label, value], index) => (
+              <div
+                key={label}
+                style={{ animationDelay: `${index * 80}ms` }}
+                className={`min-w-0 animate-rise p-5 ${index === 3 ? "bg-ink text-paper" : "bg-paper"}`}
+              >
+                <small className={`block text-[10px] font-bold uppercase tracking-[0.16em] ${index === 3 ? "text-[#d9a9ae]" : "text-muted"}`}>
+                  {label}
+                </small>
+                <strong className="mt-2 block font-serif text-[clamp(28px,3vw,40px)] font-normal leading-none [overflow-wrap:anywhere]">
+                  {value}
                 </strong>
               </div>
+            ))}
+          </div>
+
+          {/* ============ Controls ============ */}
+          <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
+            <div className="flex min-w-0 items-center gap-3 border border-line bg-paper px-4 transition-colors focus-within:border-ink">
+              <Search size={17} aria-hidden="true" className="shrink-0 text-muted" />
+              <input
+                type="search"
+                aria-label="Search accounts by name or email"
+                placeholder="Find a person by name or email"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="min-h-14 w-full min-w-0 bg-transparent text-base text-ink outline-none placeholder:text-sm placeholder:text-muted"
+              />
             </div>
 
-            <div className="fbusers-controls">
-              <div className="fbusers-search">
-                <Search size={17} aria-hidden="true" />
-                <input
-                  type="search"
-                  aria-label="Search accounts by name or email"
-                  placeholder="Find a person by name or email"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                />
-              </div>
+            <label className="flex flex-col justify-center border border-line bg-paper px-4 py-1.5 text-[10px] uppercase tracking-[0.16em] text-muted transition-colors focus-within:border-ink">
+              Sort by
+              <select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+                className="min-h-8 w-full bg-transparent text-base normal-case tracking-normal text-ink outline-none sm:text-sm"
+              >
+                <option value="Newest">Newest accounts</option>
+                <option value="Highest Value">Highest order value</option>
+                <option value="Most Orders">Most orders</option>
+                <option value="A-Z">Name: A–Z</option>
+              </select>
+            </label>
+          </div>
 
-              <label className="fbusers-sort">
-                Sort by
-                <select
-                  value={sortBy}
-                  onChange={(event) => setSortBy(event.target.value)}
-                >
-                  <option value="Newest">Newest accounts</option>
-                  <option value="Highest Value">Highest order value</option>
-                  <option value="Most Orders">Most orders</option>
-                  <option value="A-Z">Name: A–Z</option>
-                </select>
-              </label>
-            </div>
+          <div role="group" aria-label="Filter by account role" className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+            {roleOptions.map((role) => {
+              const active = roleFilter === role;
 
-            <div className="fbusers-tabs" aria-label="Filter by account role">
-              {roleOptions.map((role) => (
+              return (
                 <button
                   key={role}
                   type="button"
-                  className="fbusers-tab"
-                  aria-pressed={roleFilter === role}
+                  aria-pressed={active}
                   onClick={() => setRoleFilter(role)}
+                  className={`inline-flex min-h-10 shrink-0 items-center gap-2 border px-4 text-xs font-semibold transition-all duration-300 ${
+                    active
+                      ? "border-ink bg-ink text-paper"
+                      : "border-line bg-paper text-muted hover:border-ink hover:text-ink"
+                  }`}
                 >
                   {role === "All" ? "All accounts" : role}
                   {hasLoaded && (
-                    <>
-                      {" · "}
-                      {role === "All"
-                        ? userDirectory.length
-                        : userDirectory.filter(
-                            (user) => user.roleLabel === role
-                          ).length}
-                    </>
+                    <span className={`text-[10px] ${active ? "text-paper/60" : "text-muted/70"}`}>
+                      {roleCount(role)}
+                    </span>
                   )}
                 </button>
-              ))}
+              );
+            })}
+          </div>
+
+          <div className="flex min-h-14 items-center justify-between gap-3 text-xs text-muted">
+            <span role="status">
+              {hasLoaded
+                ? `${filteredUsers.length} of ${users.length} accounts${
+                    loading ? " · Refreshing…" : ""
+                  }`
+                : loading
+                  ? "Loading accounts…"
+                  : "Account data unavailable"}
+            </span>
+
+            {filtersActive && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="inline-flex min-h-11 items-center font-semibold text-ink underline underline-offset-4 hover:text-wine"
+              >
+                Reset filters
+              </button>
+            )}
+          </div>
+
+          {/* ============ Directory ============ */}
+          {loading && !hasLoaded ? (
+            <div className="flex min-h-64 flex-col items-center justify-center gap-3 border border-dashed border-line bg-paper p-8 text-center text-sm text-muted" role="status">
+              <Loader2 size={30} className="animate-spin text-wine" aria-hidden="true" />
+              <p>Loading accounts and order activity…</p>
             </div>
-
-            <div className="fbusers-results">
-              <span role="status">
-                {hasLoaded
-                  ? `${filteredUsers.length} of ${users.length} accounts${
-                      loading ? " · Refreshing…" : ""
-                    }`
-                  : loading
-                    ? "Loading accounts…"
-                    : "Account data unavailable"}
-              </span>
-
+          ) : !hasLoaded ? (
+            <div className="flex min-h-64 flex-col items-center justify-center gap-2 border border-dashed border-line bg-paper p-8 text-center text-sm text-muted">
+              <UsersIcon size={30} aria-hidden="true" className="text-wine" />
+              <h2 className="font-serif text-2xl text-ink">Accounts could not be loaded</h2>
+              <p>Use Refresh to try again.</p>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="flex min-h-64 flex-col items-center justify-center gap-2 border border-dashed border-line bg-paper p-8 text-center text-sm text-muted">
+              <UsersIcon size={30} aria-hidden="true" className="text-wine" />
+              <h2 className="font-serif text-2xl text-ink">
+                {users.length === 0 ? "No registered accounts" : "No matching accounts"}
+              </h2>
+              <p>
+                {users.length === 0
+                  ? "Registered users will appear here."
+                  : "Try another name, email address or role filter."}
+              </p>
               {filtersActive && (
                 <button
                   type="button"
-                  className="fbusers-reset"
                   onClick={clearFilters}
+                  className="mt-3 inline-flex min-h-11 items-center bg-ink px-5 text-xs font-semibold text-paper transition-colors hover:bg-wine"
                 >
                   Reset filters
                 </button>
               )}
             </div>
+          ) : (
+            <ul className="grid grid-cols-1 gap-4 min-[560px]:grid-cols-2 xl:grid-cols-3" aria-busy={loading}>
+              {filteredUsers.map((user, index) => {
+                const admin = user.roleLabel === "Admin";
 
-            {loading && !hasLoaded ? (
-              <div className="fbusers-empty" role="status">
-                <Loader2
-                  size={30}
-                  className="fbusers-spin"
-                  aria-hidden="true"
-                />
-                <p>Loading accounts and order activity…</p>
-              </div>
-            ) : !hasLoaded ? (
-              <div className="fbusers-empty">
-                <UsersIcon size={30} aria-hidden="true" />
-                <h2>Accounts could not be loaded</h2>
-                <p>Use Refresh to try again.</p>
-              </div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="fbusers-empty">
-                <UsersIcon size={30} aria-hidden="true" />
-                <h2>
-                  {users.length === 0
-                    ? "No registered accounts"
-                    : "No matching accounts"}
-                </h2>
-                <p>
-                  {users.length === 0
-                    ? "Registered users will appear here."
-                    : "Try another name, email address or role filter."}
-                </p>
-                {filtersActive && (
-                  <button
-                    type="button"
-                    className="fbusers-button"
-                    onClick={clearFilters}
+                return (
+                  <li
+                    key={user.accountId}
+                    style={{ animationDelay: `${Math.min(index, 11) * 50}ms` }}
+                    className="animate-rise"
                   >
-                    Reset filters
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="fbusers-grid" aria-busy={loading}>
-                {filteredUsers.map((user) => (
-                  <article className="fbusers-card" key={user.accountId}>
-                    <div className="fbusers-card-top">
-                      <div className="fbusers-avatar" aria-hidden="true">
-                        {getInitials(user.name)}
-                      </div>
+                    <TiltCard>
+                      <article className="group flex h-full flex-col overflow-hidden border border-line bg-paper transition-shadow duration-500 hover:shadow-[0_30px_50px_-30px_rgba(0,0,0,0.45)]">
+                        {/* card band */}
+                        <div className={`relative h-20 overflow-hidden ${admin ? "bg-wine" : "bg-ink"}`}>
+                          <span aria-hidden="true" className="absolute -right-6 -top-10 size-28 rounded-full border border-dashed border-paper/25 transition-transform duration-[1.5s] group-hover:rotate-90" />
+                          <span className="absolute left-5 top-4 font-serif text-sm italic text-paper/50">{brandName}</span>
+                          <div className="absolute right-4 top-4">
+                            <RoleBadge role={user.roleLabel} tone="dark" />
+                          </div>
+                        </div>
 
-                      <span
-                        className={`fbusers-role ${
-                          user.roleLabel === "Admin"
-                            ? "fbusers-role-admin"
-                            : ""
-                        }`}
-                      >
-                        {user.roleLabel === "Admin" && (
-                          <ShieldCheck size={12} aria-hidden="true" />
-                        )}
-                        {user.roleLabel}
-                      </span>
-                    </div>
+                        <div className="flex flex-1 flex-col px-5 pb-5">
+                          <div
+                            aria-hidden="true"
+                            className="-mt-8 grid size-16 place-items-center rounded-full bg-linen font-serif text-2xl text-ink ring-4 ring-paper transition-transform duration-700 group-hover:[transform:rotateY(360deg)]"
+                          >
+                            {getInitials(user.name)}
+                          </div>
 
-                    <h2>{getText(user.name) || "Unnamed account"}</h2>
-                    <p className="fbusers-email">
-                      {getText(user.email) || "Email not provided"}
-                    </p>
+                          <h2 className="mt-3 font-serif text-2xl leading-tight [overflow-wrap:anywhere]">
+                            {getText(user.name) || "Unnamed account"}
+                          </h2>
+                          <p className="mt-0.5 text-xs text-muted [overflow-wrap:anywhere]">
+                            {getText(user.email) || "Email not provided"}
+                          </p>
 
-                    <div className="fbusers-card-metrics">
-                      <div>
-                        <small>Orders</small>
-                        <strong>{user.orderCount}</strong>
-                      </div>
-                      <div>
-                        <small>Non-cancelled value</small>
-                        <strong>{formatMoney(user.orderValue)}</strong>
-                      </div>
-                    </div>
+                          <div className="my-4 grid grid-cols-[1fr_1.5fr] gap-4 border-y border-line py-4">
+                            <div>
+                              <small className="block text-[10px] uppercase tracking-[0.14em] text-muted">Orders</small>
+                              <strong className="mt-1 block font-serif text-2xl font-normal">{user.orderCount}</strong>
+                            </div>
+                            <div className="min-w-0">
+                              <small className="block text-[10px] uppercase tracking-[0.14em] text-muted">Non-cancelled value</small>
+                              <strong className="mt-1 block font-serif text-2xl font-normal [overflow-wrap:anywhere]">
+                                {formatMoney(user.orderValue)}
+                              </strong>
+                            </div>
+                          </div>
 
-                    <div className="fbusers-card-footer">
-                      <span>Joined {formatDate(user.createdAt)}</span>
-
-                      <button
-                        type="button"
-                        className="fbusers-open"
-                        aria-label={`View profile for ${
-                          getText(user.name) || "this account"
-                        }`}
-                        onClick={() => setSelectedId(user.accountId)}
-                      >
-                        View profile
-                        <ArrowUpRight size={16} aria-hidden="true" />
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </section>
+                          <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-[11px] text-muted">Joined {formatDate(user.createdAt)}</span>
+                            <button
+                              type="button"
+                              aria-label={`View profile for ${getText(user.name) || "this account"}`}
+                              onClick={() => setSelectedId(user.accountId)}
+                              className="group/btn inline-flex min-h-11 items-center gap-2 text-xs font-semibold text-ink hover:text-wine"
+                            >
+                              View profile
+                              <ArrowUpRight size={16} aria-hidden="true" className="transition-transform duration-300 group-hover/btn:-translate-y-0.5 group-hover/btn:translate-x-0.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    </TiltCard>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </>
+      )}
+    </div>
   );
 };
 

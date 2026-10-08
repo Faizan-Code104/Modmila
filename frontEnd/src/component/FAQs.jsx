@@ -3,7 +3,14 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
+  Building2,
+  CreditCard,
+  LifeBuoy,
+  Package,
+  Plus,
+  RotateCcw,
   Search,
+  Truck,
   X,
 } from "lucide-react";
 import { BUSINESS_INFO, getFullAddress } from "../storeInfo";
@@ -11,17 +18,11 @@ import { BUSINESS_INFO, getFullAddress } from "../storeInfo";
 const brandName = BUSINESS_INFO.businessName;
 const fullAddress = getFullAddress();
 
-const supportHours = [
-  BUSINESS_INFO.supportHours,
-  BUSINESS_INFO.timeZone,
-]
+const supportHours = [BUSINESS_INFO.supportHours, BUSINESS_INFO.timeZone]
   .filter(Boolean)
   .join(" ");
 
-const supportSchedule = [
-  BUSINESS_INFO.businessDays,
-  supportHours,
-]
+const supportSchedule = [BUSINESS_INFO.businessDays, supportHours]
   .filter(Boolean)
   .join(", ");
 
@@ -35,8 +36,7 @@ const contactInstruction = BUSINESS_INFO.email
 
 const supportDetails = [
   BUSINESS_INFO.email && `Email: ${BUSINESS_INFO.email}.`,
-  BUSINESS_INFO.phoneDisplay &&
-    `Phone: ${BUSINESS_INFO.phoneDisplay}.`,
+  BUSINESS_INFO.phoneDisplay && `Phone: ${BUSINESS_INFO.phoneDisplay}.`,
   supportSchedule && `Hours: ${supportSchedule}.`,
 ]
   .filter(Boolean)
@@ -46,14 +46,13 @@ const FAQS = [
   {
     category: "Business",
     question: `What is ${brandName}?`,
-    answer:
-      `${brandName} is our online store for handbags, bags, and related fashion accessories.`,
+    answer: `${brandName} is our online store for modern bedroom and bedding textiles.`,
   },
   {
     category: "Product Information",
     question: "What products do you sell?",
     answer:
-      "We sell handbags, tote bags, shoulder bags, crossbody bags, and related fashion accessories.",
+      "We sell duvet cover sets, quilts, coverlets, sheet sets, pillow shams, bed skirts, and related bedding textiles.",
   },
   {
     category: "Orders & Payment",
@@ -64,8 +63,7 @@ const FAQS = [
   {
     category: "Orders & Payment",
     question: "Do you accept online payments?",
-    answer:
-      `${brandName} accepts online electronic payments only through methods displayed at checkout. Payment processing is currently being set up and will become available after an authorized payment provider is activated.`,
+    answer: `${brandName} accepts online electronic payments only through methods displayed at checkout. Payment processing is currently being set up and will become available after an authorized payment provider is activated.`,
   },
   {
     category: "Orders & Payment",
@@ -81,8 +79,7 @@ const FAQS = [
   {
     category: "Orders & Payment",
     question: "What will appear on my card statement?",
-    answer:
-      `After online payments are activated, the exact processor-approved billing descriptor will be displayed at checkout or in the order confirmation. It will identify the transaction as associated with ${brandName}.`,
+    answer: `After online payments are activated, the exact processor-approved billing descriptor will be displayed at checkout or in the order confirmation. It will identify the transaction as associated with ${brandName}.`,
   },
   {
     category: "Shipping",
@@ -117,8 +114,7 @@ const FAQS = [
   {
     category: "Shipping",
     question: "Can I change my shipping address?",
-    answer:
-      `${contactInstruction} immediately. Address changes are available only before shipment and cannot be guaranteed after fulfillment begins.`,
+    answer: `${contactInstruction} immediately. Address changes are available only before shipment and cannot be guaranteed after fulfillment begins.`,
   },
   {
     category: "Orders & Payment",
@@ -141,20 +137,17 @@ const FAQS = [
   {
     category: "Returns & Refunds",
     question: "Do you charge a restocking fee?",
-    answer:
-      "No. We do not charge a restocking fee for an eligible return.",
+    answer: "No. We do not charge a restocking fee for an eligible return.",
   },
   {
     category: "Returns & Refunds",
     question: "Who pays for return shipping?",
-    answer:
-      `For a change-of-mind return, the customer pays return shipping. For a verified damaged, defective, or incorrect product, ${brandName} covers reasonable return-shipping costs.`,
+    answer: `For a change-of-mind return, the customer pays return shipping. For a verified damaged, defective, or incorrect product, ${brandName} covers reasonable return-shipping costs.`,
   },
   {
     category: "Returns & Refunds",
     question: "What if my order arrives damaged or incorrect?",
-    answer:
-      `${contactInstruction} within 48 hours of delivery. Include the order number and clear photographs of the item, packaging, and shipping label.`,
+    answer: `${contactInstruction} within 48 hours of delivery. Include the order number and clear photographs of the item, packaging, and shipping label.`,
   },
   {
     category: "Returns & Refunds",
@@ -178,53 +171,43 @@ const FAQS = [
   {
     category: "Business",
     question: "Where is your inventory stored?",
-    answer:
-      `${brandName} fulfills customer orders from inventory held for sale by the business. Our published address is a business mailing and authorized return address and is not presented as a walk-in retail store.`,
+    answer: `${brandName} fulfills customer orders from inventory held for sale by the business. Our published address is a business mailing and authorized return address and is not presented as a walk-in retail store.`,
   },
   {
     category: "Business",
     question: "Can I shop at your business address?",
-    answer:
-      `No walk-in retail shopping or customer pickup is offered unless ${brandName} confirms an appointment or pickup option in writing.`,
+    answer: `No walk-in retail shopping or customer pickup is offered unless ${brandName} confirms an appointment or pickup option in writing.`,
   },
   {
     category: "Support",
     question: "How can I contact customer support?",
-    answer:
-      `${supportDetails || "You can contact our team through the Contact page."} We generally respond within one business day.`,
+    answer: `${supportDetails || "You can contact our team through the Contact page."} We generally respond within one business day.`,
   },
 ];
 
 const TOPICS = [
-  {
-    name: "Business",
-    subtitle: "About the business",
-  },
-  {
-    name: "Product Information",
-    subtitle: "Our bags and accessories",
-  },
+  { name: "Business", subtitle: "About the business", Icon: Building2 },
+  { name: "Product Information", subtitle: "Our bedding collection", Icon: Package },
   {
     name: "Orders & Payment",
     subtitle: "Purchases, payments, and cancellations",
+    Icon: CreditCard,
   },
-  {
-    name: "Shipping",
-    subtitle: "Delivery and tracking",
-  },
+  { name: "Shipping", subtitle: "Delivery and tracking", Icon: Truck },
   {
     name: "Returns & Refunds",
     subtitle: "Returns, conditions, and refunds",
+    Icon: RotateCcw,
   },
-  {
-    name: "Support",
-    subtitle: "Get in touch",
-  },
+  { name: "Support", subtitle: "Get in touch", Icon: LifeBuoy },
 ];
+
+const pad = (number) => String(number).padStart(2, "0");
 
 const FAQs = () => {
   const [activeTopic, setActiveTopic] = useState("Orders & Payment");
   const [query, setQuery] = useState("");
+  const [openQuestion, setOpenQuestion] = useState(null);
 
   const searchText = query.trim().toLowerCase();
 
@@ -235,739 +218,348 @@ const FAQs = () => {
           ? `${faq.question} ${faq.answer} ${faq.category}`
               .toLowerCase()
               .includes(searchText)
-          : faq.category === activeTopic
+          : faq.category === activeTopic,
       ),
-    [activeTopic, searchText]
+    [activeTopic, searchText],
   );
+
+  const topicCounts = useMemo(() => {
+    const counts = {};
+    FAQS.forEach((faq) => {
+      counts[faq.category] = (counts[faq.category] || 0) + 1;
+    });
+    return counts;
+  }, []);
 
   const selectTopic = (name) => {
     setActiveTopic(name);
     setQuery("");
+    setOpenQuestion(null);
   };
 
+  const toggleQuestion = (question) =>
+    setOpenQuestion((current) => (current === question ? null : question));
+
   return (
-    <main className="fbhelp-page">
-      <style>{styles}</style>
+    <div className="min-w-0 overflow-x-clip bg-chalk text-ink">
+      {/* ============ Hero with search ============ */}
+      <section className="relative overflow-hidden px-4 pb-14 pt-12 text-center sm:px-8 sm:pb-20 sm:pt-16 lg:pb-24 lg:pt-20">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-12 size-[560px] -translate-x-1/2 animate-[spin_60s_linear_infinite] rounded-full border border-dashed border-line sm:size-[760px]"
+        />
 
-      <div className="fbhelp-container">
-        <div className="fbhelp-topline">
-          <span>{brandName} / Customer care</span>
-          <Link to="/contact">
-            Speak to our team
-            <ArrowUpRight size={16} />
-          </Link>
-        </div>
+        <div className="relative mx-auto max-w-[920px]">
+          <div className="flex animate-rise items-center justify-between gap-4 border-b border-line pb-4 text-[10px] font-bold uppercase tracking-[0.2em] sm:text-[11px]">
+            <span className="text-wine">{brandName} / Customer care</span>
+            <Link
+              to="/contact"
+              className="group inline-flex min-h-11 items-center gap-2 text-muted transition-colors hover:text-wine"
+            >
+              Speak to our team
+              <ArrowUpRight
+                size={14}
+                className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+              />
+            </Link>
+          </div>
 
-        <div className="fbhelp-workspace">
-          <aside className="fbhelp-sidebar">
-            <header className="fbhelp-heading">
-              <p className="fbhelp-eyebrow">
-                Frequently asked questions
-              </p>
-              <h1>
-                A little
-                <span>guidance.</span>
-              </h1>
-              <p className="fbhelp-intro">
-                Choose a topic and find the details you need.
-              </p>
-            </header>
+          <p className="mt-10 animate-rise text-[10px] font-bold uppercase tracking-[0.22em] text-muted [animation-delay:100ms]">
+            Frequently asked questions
+          </p>
+          <h1 className="mt-4 font-serif text-[clamp(54px,8vw,116px)] leading-[0.92] tracking-[-0.04em] perspective-distant">
+            <span className="block animate-fold-in [animation-delay:150ms]">
+              A little
+            </span>
+            <em className="block animate-fold-in text-wine [animation-delay:300ms]">
+              guidance.
+            </em>
+          </h1>
+          <p className="mx-auto mt-6 max-w-md animate-rise text-[15px] text-muted [animation-delay:420ms]">
+            Choose a topic, or search every answer at once.
+          </p>
 
-            <nav className="fbhelp-topics" aria-label="FAQ topics">
-              {TOPICS.map((topic, index) => (
+          {/* Floating search */}
+          <div className="mx-auto mt-9 max-w-[640px] animate-flip-up perspective-distant [animation-delay:500ms]">
+            <label htmlFor="faq-search-input" className="sr-only">
+              Search every topic
+            </label>
+            <div className="flex items-center gap-3 border border-ink bg-paper px-5 shadow-[0_24px_50px_-30px_rgba(36,34,35,0.6)] transition-[border-color,box-shadow] duration-300 focus-within:border-wine focus-within:shadow-[0_24px_50px_-25px_rgba(125,48,58,0.55)]">
+              <Search size={19} aria-hidden="true" className="shrink-0 text-wine" />
+              <input
+                id="faq-search-input"
+                type="search"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setOpenQuestion(null);
+                }}
+                placeholder="Shipping, returns, payments…"
+                className="min-h-[60px] w-full min-w-0 bg-transparent text-left text-base outline-none placeholder:text-sm placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
+              />
+              {query && (
                 <button
-                  key={topic.name}
                   type="button"
-                  aria-pressed={
-                    !searchText && activeTopic === topic.name
-                  }
-                  aria-controls="fbhelp-answers"
-                  className={
-                    !searchText && activeTopic === topic.name
-                      ? "is-active"
-                      : ""
-                  }
-                  onClick={() => selectTopic(topic.name)}
+                  onClick={() => setQuery("")}
+                  aria-label="Clear search"
+                  className="grid size-10 shrink-0 place-items-center transition-transform duration-300 hover:rotate-90 hover:text-wine"
                 >
-                  <span className="fbhelp-topic-number">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span className="fbhelp-topic-copy">
-                    <strong>{topic.name}</strong>
-                    <small>{topic.subtitle}</small>
-                  </span>
-                  <ArrowUpRight size={18} />
+                  <X size={18} />
                 </button>
-              ))}
-            </nav>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
-            <div className="fbhelp-support-note">
-              <p className="fbhelp-eyebrow">Still need a hand?</p>
+      {/* ============ Topic tiles (3D) ============ */}
+      <section aria-label="FAQ topics" className="px-4 sm:px-8 lg:px-[clamp(40px,5vw,82px)]">
+        <nav className="mx-auto grid max-w-[1450px] grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {TOPICS.map(({ name, subtitle, Icon }, index) => {
+            const selected = !searchText && activeTopic === name;
 
+            return (
+              <div
+                key={name}
+                style={{ animationDelay: `${600 + index * 80}ms` }}
+                className="animate-fold-in perspective-[900px]"
+              >
+                <button
+                  type="button"
+                  aria-pressed={selected}
+                  aria-controls="faq-answers"
+                  onClick={() => selectTopic(name)}
+                  className={`group relative flex h-full min-h-[150px] w-full flex-col justify-between p-4 text-left transition-all duration-500 ease-soft sm:min-h-[170px] sm:p-5 ${
+                    selected
+                      ? "-translate-y-2 bg-wine text-paper shadow-[0_30px_40px_-25px_rgba(125,48,58,0.8)] [transform:rotateX(8deg)]"
+                      : "bg-paper hover:-translate-y-1 hover:shadow-[0_24px_36px_-28px_rgba(36,34,35,0.6)] hover:[transform:rotateX(6deg)]"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none absolute inset-2 border border-dashed ${
+                      selected ? "border-paper/30" : "border-line"
+                    }`}
+                  />
+                  <span className="relative flex items-center justify-between">
+                    <span
+                      className={`text-[10px] font-bold ${selected ? "text-[#e6c4c7]" : "text-wine"}`}
+                    >
+                      {pad(index + 1)}
+                    </span>
+                    <Icon
+                      size={19}
+                      strokeWidth={1.4}
+                      aria-hidden="true"
+                      className={`transition-transform duration-500 group-hover:-translate-y-0.5 group-hover:rotate-6 ${
+                        selected ? "text-[#e6c4c7]" : "text-wine"
+                      }`}
+                    />
+                  </span>
+                  <span className="relative">
+                    <strong className="block font-serif text-xl font-normal leading-tight sm:text-[22px]">
+                      {name}
+                    </strong>
+                    <small
+                      className={`mt-1 block text-[11px] leading-snug ${
+                        selected ? "text-paper/75" : "text-muted"
+                      }`}
+                    >
+                      {subtitle} · {pad(topicCounts[name] || 0)}
+                    </small>
+                  </span>
+                </button>
+              </div>
+            );
+          })}
+        </nav>
+      </section>
+
+      {/* ============ Answers (accordion) ============ */}
+      <section
+        id="faq-answers"
+        aria-labelledby="faq-reader-title"
+        className="px-4 py-14 sm:px-8 sm:py-20 lg:px-[clamp(40px,5vw,82px)] lg:py-24"
+      >
+        <div className="mx-auto grid max-w-[1450px] gap-8 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] lg:gap-16">
+          <div className="lg:sticky lg:top-28 lg:self-start">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wine">
+              {searchText ? "Across all topics" : "The details"}
+            </p>
+            <h2
+              key={searchText ? "search" : activeTopic}
+              id="faq-reader-title"
+              className="mt-3 animate-flip-up font-serif text-[clamp(40px,4.6vw,68px)] leading-[1]"
+            >
+              {searchText ? "Search results" : activeTopic}
+            </h2>
+            <span
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className="mt-4 inline-flex items-center gap-2 border border-line bg-paper px-3 py-1.5 text-[11px] font-semibold"
+            >
+              <span className="size-1.5 rounded-full bg-wine" aria-hidden="true" />
+              {visibleFaqs.length} {visibleFaqs.length === 1 ? "answer" : "answers"}
+            </span>
+          </div>
+
+          <div key={searchText ? "search" : activeTopic} className="border-t border-ink">
+            {visibleFaqs.length ? (
+              visibleFaqs.map((faq, index) => {
+                const open = openQuestion === faq.question;
+                const panelId = `faq-panel-${index}`;
+                const buttonId = `faq-button-${index}`;
+
+                return (
+                  <article
+                    key={faq.question}
+                    style={{ animationDelay: `${Math.min(index, 6) * 70}ms` }}
+                    className="animate-rise border-b border-line"
+                  >
+                    <h3>
+                      <button
+                        id={buttonId}
+                        type="button"
+                        aria-expanded={open}
+                        aria-controls={panelId}
+                        onClick={() => toggleQuestion(faq.question)}
+                        className="group grid min-h-[76px] w-full grid-cols-[34px_minmax(0,1fr)_40px] items-center gap-3 py-4 text-left sm:grid-cols-[44px_minmax(0,1fr)_44px]"
+                      >
+                        <span className="text-[11px] font-bold text-wine">
+                          {pad(index + 1)}
+                        </span>
+                        <span className="min-w-0">
+                          {searchText && (
+                            <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.18em] text-muted">
+                              {faq.category}
+                            </span>
+                          )}
+                          <span
+                            className={`block font-serif text-xl leading-snug transition-colors sm:text-2xl ${
+                              open ? "text-wine" : "group-hover:text-wine"
+                            }`}
+                          >
+                            {faq.question}
+                          </span>
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className={`grid size-9 place-items-center justify-self-end rounded-full border transition-all duration-500 sm:size-10 ${
+                            open
+                              ? "rotate-45 border-wine bg-wine text-paper"
+                              : "border-line group-hover:border-wine group-hover:text-wine"
+                          }`}
+                        >
+                          <Plus size={16} />
+                        </span>
+                      </button>
+                    </h3>
+
+                    <div
+                      id={panelId}
+                      role="region"
+                      aria-labelledby={buttonId}
+                      className={`grid transition-[grid-template-rows] duration-500 ease-soft ${
+                        open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                      }`}
+                    >
+                      <div className="overflow-hidden">
+                        <p
+                          className={`origin-top pb-6 pl-[46px] pr-2 text-[15px] leading-[1.85] text-muted transition-[opacity,transform] duration-500 sm:pl-14 sm:pr-14 ${
+                            open
+                              ? "opacity-100 [transform:perspective(800px)_rotateX(0deg)]"
+                              : "opacity-0 [transform:perspective(800px)_rotateX(-35deg)]"
+                          }`}
+                        >
+                          {faq.answer}
+                        </p>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })
+            ) : (
+              <div className="border-b border-line py-14 text-center">
+                <h3 className="font-serif text-3xl">No matching answers.</h3>
+                <p className="mt-3 text-sm text-muted">
+                  Try another word or choose a topic.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="group mt-6 inline-flex min-h-11 items-center gap-3 border-b border-wine text-sm font-bold text-wine"
+                >
+                  Return to {activeTopic}
+                  <ArrowRight
+                    size={16}
+                    className="transition-transform duration-300 group-hover:translate-x-1"
+                  />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ============ Still need a hand ============ */}
+      <section className="bg-ink px-4 py-14 text-paper sm:px-8 sm:py-20 lg:px-[clamp(40px,5vw,82px)]">
+        <div className="mx-auto grid max-w-[1450px] items-end gap-10 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#d9a9ae]">
+              Still need a hand? · A conversation can help
+            </p>
+            <h2 className="mt-4 font-serif text-[clamp(40px,5vw,76px)] leading-[1]">
+              Let&apos;s talk it <em className="text-[#d9a9ae]">through.</em>
+            </h2>
+
+            <div className="mt-7 flex flex-wrap gap-x-10 gap-y-4 text-sm">
               {BUSINESS_INFO.email && (
-                <a href={`mailto:${BUSINESS_INFO.email}`}>
+                <a
+                  href={`mailto:${BUSINESS_INFO.email}`}
+                  className="break-all border-b border-paper/30 pb-1 transition-colors hover:border-[#d9a9ae] hover:text-[#d9a9ae]"
+                >
                   {BUSINESS_INFO.email}
                 </a>
               )}
 
               {BUSINESS_INFO.phoneDisplay && phoneHref && (
-                <a href={`tel:${phoneHref}`}>
+                <a
+                  href={`tel:${phoneHref}`}
+                  className="border-b border-paper/30 pb-1 transition-colors hover:border-[#d9a9ae] hover:text-[#d9a9ae]"
+                >
                   {BUSINESS_INFO.phoneDisplay}
                 </a>
               )}
 
-              {!BUSINESS_INFO.email &&
-                !(BUSINESS_INFO.phoneDisplay && phoneHref) && (
-                  <Link to="/contact">Contact our team</Link>
-                )}
-
               {supportSchedule && (
-                <p>
+                <p className="text-paper/65">
                   {BUSINESS_INFO.businessDays}
-                  {BUSINESS_INFO.businessDays && supportHours && <br />}
+                  {BUSINESS_INFO.businessDays && supportHours && " · "}
                   {supportHours}
                 </p>
               )}
             </div>
-          </aside>
+          </div>
 
-          <section
-            id="fbhelp-answers"
-            className="fbhelp-reader"
-            aria-labelledby="fbhelp-reader-title"
+          <Link
+            to="/contact"
+            className="group relative inline-flex min-h-14 items-center justify-between gap-10 overflow-hidden bg-wine px-6 py-4 text-sm font-semibold transition-colors duration-300 hover:bg-wine-dark"
           >
-            <div className="fbhelp-search">
-              <label htmlFor="fbhelp-search-input">
-                Search every topic
-              </label>
-              <div className="fbhelp-search-input">
-                <Search size={19} aria-hidden="true" />
-                <input
-                  id="fbhelp-search-input"
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Shipping, returns, payments…"
-                />
-                {query && (
-                  <button
-                    type="button"
-                    onClick={() => setQuery("")}
-                    aria-label="Clear search"
-                  >
-                    <X size={18} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="fbhelp-reader-heading">
-              <div>
-                <p className="fbhelp-eyebrow">
-                  {searchText ? "Across all topics" : "The details"}
-                </p>
-                <h2 id="fbhelp-reader-title">
-                  {searchText ? "Search results" : activeTopic}
-                </h2>
-              </div>
-              <span
-                role="status"
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                {visibleFaqs.length}{" "}
-                {visibleFaqs.length === 1 ? "answer" : "answers"}
-              </span>
-            </div>
-
-            <div
-              key={searchText ? "search" : activeTopic}
-              className="fbhelp-answer-list"
-            >
-              {visibleFaqs.length ? (
-                visibleFaqs.map((faq, index) => (
-                  <article
-                    key={faq.question}
-                    className="fbhelp-answer"
-                    style={{
-                      "--fbhelp-delay": `${Math.min(index, 4) * 45}ms`,
-                    }}
-                  >
-                    <span
-                      className="fbhelp-answer-number"
-                      aria-hidden="true"
-                    >
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-
-                    <div>
-                      {searchText && (
-                        <p className="fbhelp-answer-category">
-                          {faq.category}
-                        </p>
-                      )}
-                      <h3>{faq.question}</h3>
-                      <p className="fbhelp-answer-text">
-                        {faq.answer}
-                      </p>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <div className="fbhelp-empty">
-                  <h3>No matching answers.</h3>
-                  <p>Try another word or choose a topic.</p>
-                  <button
-                    type="button"
-                    onClick={() => setQuery("")}
-                  >
-                    Return to {activeTopic}
-                    <ArrowRight size={16} />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <footer className="fbhelp-reader-footer">
-              <div>
-                <p className="fbhelp-eyebrow">
-                  A conversation can help
-                </p>
-                <h3>Let's talk it through.</h3>
-              </div>
-              <Link to="/contact">
-                Contact support
-                <ArrowRight size={18} />
-              </Link>
-            </footer>
-          </section>
+            <span
+              aria-hidden="true"
+              className="absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-paper/15 transition-transform duration-700 group-hover:translate-x-[420%]"
+            />
+            <span className="relative">Contact support</span>
+            <ArrowRight
+              size={18}
+              className="relative transition-transform duration-300 group-hover:translate-x-1"
+            />
+          </Link>
         </div>
-      </div>
-    </main>
+      </section>
+    </div>
   );
 };
-
-const styles = `
-  .fbhelp-page {
-    --ink: #173f36;
-    --cream: #f5f0e6;
-    --paper: #fffdf5;
-    --lime: #d7e5a5;
-    --accent: #a56e4f;
-    --line: rgba(23, 63, 54, .23);
-    min-height: 100vh;
-    padding-bottom: 80px;
-    background: var(--cream);
-    color: var(--ink);
-    font-family: 'Onest', ui-sans-serif, system-ui, -apple-system,
-      BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    line-height: 1.5;
-  }
-
-  .fbhelp-page *,
-  .fbhelp-page *::before,
-  .fbhelp-page *::after {
-    box-sizing: border-box;
-  }
-
-  .fbhelp-page a {
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .fbhelp-page button,
-  .fbhelp-page input {
-    font: inherit;
-  }
-
-  .fbhelp-page button {
-    cursor: pointer;
-  }
-
-  .fbhelp-page a:focus-visible,
-  .fbhelp-page button:focus-visible,
-  .fbhelp-page input:focus-visible {
-    outline: 3px solid var(--accent);
-    outline-offset: 4px;
-  }
-
-  .fbhelp-container {
-    width: min(100%, 1450px);
-    padding-inline: clamp(20px, 4.2vw, 70px);
-    margin-inline: auto;
-  }
-
-  .fbhelp-topline {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding-block: 20px;
-    border-bottom: 1px solid var(--line);
-    font-size: 11px;
-  }
-
-  .fbhelp-topline a {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 44px;
-    font-weight: 600;
-  }
-
-  .fbhelp-workspace {
-    display: grid;
-    grid-template-columns: 340px minmax(0, 1fr);
-    align-items: start;
-    gap: clamp(30px, 5vw, 75px);
-    margin-top: 45px;
-  }
-
-  .fbhelp-sidebar {
-    position: sticky;
-    top: 110px;
-    min-width: 0;
-  }
-
-  .fbhelp-eyebrow {
-    margin: 0;
-    font-size: 9px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: .13em;
-  }
-
-  .fbhelp-heading h1 {
-    margin: 18px 0;
-    font-size: clamp(52px, 5.5vw, 75px);
-    font-weight: 500;
-    line-height: .99;
-    letter-spacing: -.075em;
-  }
-
-  .fbhelp-heading h1 span {
-    display: block;
-    color: var(--accent);
-  }
-
-  .fbhelp-intro {
-    max-width: 280px;
-    margin: 0 0 28px;
-    font-size: 13px;
-    line-height: 1.8;
-    color: #516b62;
-  }
-
-  .fbhelp-topics {
-    border-top: 1px solid var(--ink);
-  }
-
-  .fbhelp-topics button {
-    display: grid;
-    grid-template-columns: 22px minmax(0, 1fr) 18px;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    min-height: 76px;
-    padding: 16px 10px;
-    border: 0;
-    border-bottom: 1px solid var(--line);
-    background: transparent;
-    color: var(--ink);
-    text-align: left;
-    transition: background .25s ease, padding .25s ease;
-  }
-
-  .fbhelp-topics button:hover,
-  .fbhelp-topics button.is-active {
-    padding-left: 17px;
-    background: var(--lime);
-  }
-
-  .fbhelp-topic-number {
-    color: var(--accent);
-    font-size: 9px;
-  }
-
-  .fbhelp-topic-copy strong {
-    display: block;
-    font-size: 18px;
-    font-weight: 500;
-    letter-spacing: -.035em;
-  }
-
-  .fbhelp-topic-copy small {
-    display: block;
-    margin-top: 3px;
-    color: #516b62;
-    font-size: 10px;
-  }
-
-  .fbhelp-support-note {
-    margin-top: 28px;
-    padding-left: 12px;
-    border-left: 2px solid var(--accent);
-  }
-
-  .fbhelp-support-note a {
-    display: block;
-    width: fit-content;
-    max-width: 100%;
-    margin-top: 10px;
-    font-size: 12px;
-    overflow-wrap: anywhere;
-  }
-
-  .fbhelp-support-note a:hover {
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
-
-  .fbhelp-support-note > p:last-child:not(.fbhelp-eyebrow) {
-    margin: 13px 0 0;
-    color: #516b62;
-    font-size: 10px;
-    line-height: 1.8;
-  }
-
-  .fbhelp-reader {
-    min-width: 0;
-    border: 1px solid var(--ink);
-    background: var(--paper);
-  }
-
-  .fbhelp-search {
-    padding: 25px 30px;
-    border-bottom: 1px solid var(--line);
-    background: #edf0e4;
-  }
-
-  .fbhelp-search label {
-    display: block;
-    margin-bottom: 10px;
-    font-size: 10px;
-    font-weight: 700;
-  }
-
-  .fbhelp-search-input {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-bottom: 1px solid var(--ink);
-  }
-
-  .fbhelp-search-input > svg {
-    flex-shrink: 0;
-  }
-
-  .fbhelp-search-input input {
-    width: 100%;
-    min-width: 0;
-    min-height: 48px;
-    padding: 10px 0;
-    border: 0;
-    background: transparent;
-    color: var(--ink);
-    font-size: 16px;
-  }
-
-  .fbhelp-search-input input::placeholder {
-    color: #697b6d;
-    font-size: 12px;
-  }
-
-  .fbhelp-search-input input::-webkit-search-cancel-button {
-    display: none;
-  }
-
-  .fbhelp-search-input button {
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border: 0;
-    background: transparent;
-    color: var(--ink);
-  }
-
-  .fbhelp-reader-heading {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 35px 35px 28px;
-    border-bottom: 1px solid var(--ink);
-  }
-
-  .fbhelp-reader-heading > div {
-    min-width: 0;
-  }
-
-  .fbhelp-reader-heading h2 {
-    margin: 10px 0 0;
-    font-size: clamp(31px, 3.4vw, 45px);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.055em;
-  }
-
-  .fbhelp-reader-heading > span {
-    flex-shrink: 0;
-    font-size: 10px;
-    color: #516b62;
-  }
-
-  .fbhelp-answer {
-    display: grid;
-    grid-template-columns: 32px minmax(0, 1fr);
-    gap: 20px;
-    padding: 32px 35px;
-    border-bottom: 1px solid var(--line);
-    animation: fbhelpReveal .45s both;
-    animation-delay: var(--fbhelp-delay, 0ms);
-  }
-
-  .fbhelp-answer-number {
-    padding-top: 4px;
-    color: var(--accent);
-    font-size: 11px;
-  }
-
-  .fbhelp-answer-category {
-    margin: 0 0 9px;
-    color: var(--accent);
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .1em;
-  }
-
-  .fbhelp-answer h3 {
-    margin: 0 0 14px;
-    font-size: clamp(20px, 2vw, 26px);
-    font-weight: 500;
-    line-height: 1.2;
-    letter-spacing: -.035em;
-  }
-
-  .fbhelp-answer-text {
-    margin: 0;
-    color: #516b62;
-    font-size: 14px;
-    line-height: 1.9;
-    overflow-wrap: anywhere;
-  }
-
-  .fbhelp-reader-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 22px;
-    padding: 30px 35px;
-    background: var(--lime);
-  }
-
-  .fbhelp-reader-footer h3 {
-    margin: 10px 0 0;
-    font-size: 28px;
-    font-weight: 500;
-    letter-spacing: -.045em;
-  }
-
-  .fbhelp-reader-footer a,
-  .fbhelp-empty button {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    min-height: 50px;
-    padding: 14px 18px;
-    border: 0;
-    background: var(--ink);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 700;
-    transition: transform .25s ease;
-  }
-
-  .fbhelp-reader-footer a:hover,
-  .fbhelp-empty button:hover {
-    transform: translateY(-2px);
-  }
-
-  .fbhelp-empty {
-    padding: 40px 35px;
-  }
-
-  .fbhelp-empty h3 {
-    margin: 0;
-    font-size: 27px;
-    font-weight: 500;
-    letter-spacing: -.04em;
-  }
-
-  .fbhelp-empty p {
-    margin: 12px 0 25px;
-    font-size: 13px;
-    color: #516b62;
-  }
-
-  @keyframes fbhelpReveal {
-    from {
-      opacity: 0;
-      transform: translateY(14px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @media (max-width: 1050px) {
-    .fbhelp-workspace {
-      grid-template-columns: 275px minmax(0, 1fr);
-      gap: 30px;
-    }
-
-    .fbhelp-answer,
-    .fbhelp-reader-heading,
-    .fbhelp-reader-footer {
-      padding-inline: 25px;
-    }
-  }
-
-  @media (max-width: 800px) {
-    .fbhelp-workspace {
-      grid-template-columns: minmax(0, 1fr);
-      margin-top: 32px;
-      gap: 30px;
-    }
-
-    .fbhelp-sidebar {
-      position: static;
-    }
-
-    .fbhelp-heading h1 {
-      font-size: 64px;
-    }
-
-    .fbhelp-heading h1 span {
-      display: inline;
-      margin-left: 10px;
-    }
-
-    .fbhelp-intro {
-      max-width: none;
-    }
-
-    .fbhelp-topics {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0 15px;
-    }
-
-    .fbhelp-support-note {
-      display: none;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .fbhelp-page {
-      padding-bottom: 50px;
-    }
-
-    .fbhelp-topline {
-      flex-wrap: wrap;
-      gap: 0;
-      padding-block: 12px;
-      font-size: 10px;
-    }
-
-    .fbhelp-heading h1 {
-      font-size: 57px;
-    }
-
-    .fbhelp-heading h1 span {
-      display: block;
-      margin-left: 0;
-    }
-
-    .fbhelp-topics {
-      gap: 0 10px;
-    }
-
-    .fbhelp-topics button {
-      grid-template-columns: minmax(0, 1fr) 16px;
-      gap: 8px;
-      padding: 13px 8px;
-      min-height: 70px;
-    }
-
-    .fbhelp-topic-number,
-    .fbhelp-topic-copy small {
-      display: none;
-    }
-
-    .fbhelp-topic-copy strong {
-      font-size: 15px;
-    }
-
-    .fbhelp-topics button:hover,
-    .fbhelp-topics button.is-active {
-      padding-left: 10px;
-    }
-
-    .fbhelp-search {
-      padding: 22px 20px;
-    }
-
-    .fbhelp-reader-heading {
-      align-items: flex-start;
-      padding: 27px 20px;
-      gap: 12px;
-    }
-
-    .fbhelp-reader-heading h2 {
-      font-size: 32px;
-    }
-
-    .fbhelp-answer {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 9px;
-      padding: 27px 20px;
-    }
-
-    .fbhelp-answer h3 {
-      font-size: 23px;
-    }
-
-    .fbhelp-answer-text {
-      font-size: 13px;
-    }
-
-    .fbhelp-reader-footer {
-      padding: 27px 20px;
-    }
-
-    .fbhelp-reader-footer a {
-      width: 100%;
-    }
-
-    .fbhelp-empty {
-      padding: 30px 20px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .fbhelp-page *,
-    .fbhelp-page *::before,
-    .fbhelp-page *::after {
-      animation: none !important;
-      transition: none !important;
-    }
-  }
-`;
 
 export default FAQs;

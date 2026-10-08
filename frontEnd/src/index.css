@@ -1,176 +1,198 @@
+/* Fonts (DM Sans + Instrument Serif) are loaded in index.html */
 @import "tailwindcss";
 
+/* ================= MODMILA DESIGN TOKENS ================= */
+
 @theme {
-  /* FableBelle typography */
-  --font-display: "Onest", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Onest", ui-sans-serif, system-ui, sans-serif;
+  /* Typography */
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, Arial, sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
 
-  /* FableBelle palette */
-  --color-paper: #fffaf3;
-  --color-ivory: #fffaf3;
-  --color-champagne: #eadcc8;
-  --color-navy: #17243b;
-  --color-navy-dark: #101b2e;
-  --color-gold: #b58a50;
-  --color-ink: #17243b;
-  --color-line: #d6cfc4;
-  --color-mute: #535b67;
+  /* Palette: warm chalk, charcoal and oxblood */
+  --color-chalk: #f3efe8;
+  --color-paper: #faf8f3;
+  --color-linen: #e9e2d8;
+  --color-sand: #d9cfc2;
+  --color-ink: #242223;
+  --color-ink-soft: #3a3637;
+  --color-muted: #716b68;
+  --color-line: #c9c1b9;
+  --color-wine: #7d303a;
+  --color-wine-dark: #5f222a;
+  --color-wine-soft: #f1e4e2;
+  --color-success: #3f6b4f;
+  --color-danger: #a33a3a;
 
-  /* Existing color names retained for current components */
-  --color-bottle: #17243b;
-  --color-bottle-dark: #101b2e;
+  /* Temporary aliases so files not yet converted still use the new palette.
+     Remove once every component uses the names above. */
+  --color-ivory: #faf8f3;
+  --color-champagne: #e9e2d8;
+  --color-navy: #242223;
+  --color-navy-dark: #171516;
+  --color-gold: #7d303a;
+  --color-mute: #716b68;
+  --color-bottle: #242223;
+  --color-bottle-dark: #171516;
+
+  /* Easing */
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-drape: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Animations — use as animate-rise, animate-fold-in, animate-drape, etc. */
+  --animate-rise: rise 0.9s var(--ease-soft) both;
+  --animate-fade-in: fade-in 0.6s ease-out both;
+  --animate-scale-in: scale-in 0.5s var(--ease-soft) both;
+  --animate-fold-in: fold-in 0.9s var(--ease-soft) both;
+  --animate-flip-up: flip-up 0.8s var(--ease-soft) both;
+  --animate-drape: drape 7s var(--ease-drape) infinite;
+  --animate-float-3d: float-3d 9s ease-in-out infinite;
+  --animate-spin-y: spin-y 1.2s var(--ease-soft) both;
+  --animate-stitch: stitch 2.2s ease-out both;
+  --animate-marquee: marquee 28s linear infinite;
+  --animate-slow-zoom: slow-zoom 14s ease-in-out infinite alternate;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-drawer-in: drawer-in 0.45s var(--ease-soft) both;
+
+  /* 2D */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(32px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  @keyframes slow-zoom {
+    from { transform: scale(1); }
+    to   { transform: scale(1.08); }
+  }
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to   { background-position: 200% 0; }
+  }
+  @keyframes drawer-in {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+  }
+  /* Logo "sewing" line — use on SVG paths with pathLength="1" */
+  @keyframes stitch {
+    from { stroke-dashoffset: 1; }
+    to   { stroke-dashoffset: 0; }
+  }
+
+  /* 3D — parent needs Tailwind "perspective-*" (e.g. perspective-distant) */
+  @keyframes fold-in {
+    from { opacity: 0; transform: rotateX(-75deg) translateY(24px); transform-origin: top center; }
+    to   { opacity: 1; transform: rotateX(0) translateY(0); transform-origin: top center; }
+  }
+  @keyframes flip-up {
+    from { opacity: 0; transform: rotateY(-35deg) translateZ(-80px); }
+    to   { opacity: 1; transform: rotateY(0) translateZ(0); }
+  }
+  @keyframes drape {
+    0%, 100% { transform: rotateX(0deg) rotateY(0deg); }
+    25%      { transform: rotateX(4deg) rotateY(-3deg); }
+    50%      { transform: rotateX(-2deg) rotateY(3deg); }
+    75%      { transform: rotateX(3deg) rotateY(1deg); }
+  }
+  @keyframes float-3d {
+    0%, 100% { transform: translateY(0) rotateX(6deg) rotateY(-10deg); }
+    50%      { transform: translateY(-14px) rotateX(-4deg) rotateY(8deg); }
+  }
+  @keyframes spin-y {
+    from { transform: rotateY(-180deg); opacity: 0; }
+    to   { transform: rotateY(0); opacity: 1; }
+  }
+}
+
+/* ================= SMALL UTILITIES ================= */
+
+/* Horizontal swipe rows on mobile without a visible scrollbar */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* ================= GLOBAL ================= */
 
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  background-color: var(--color-paper);
-  font-family: var(--font-sans);
-  color: var(--color-ink);
-  font-size: 16px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
-
-button:not(:disabled),
-[role="button"]:not([aria-disabled="true"]) {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-}
-
-a,
-button {
-  -webkit-tap-highlight-color: transparent;
-}
-
-img {
-  display: block;
-  max-width: 100%;
-}
-
-[hidden] {
-  display: none !important;
-}
-
-::selection {
-  background-color: var(--color-navy);
-  color: var(--color-paper);
-}
-
-:focus-visible {
-  outline: 2px solid var(--color-gold);
-  outline-offset: 4px;
-}
-
-/* ================= ANIMATIONS ================= */
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-80px);
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* keeps #section targets clear of the sticky header */
+    scroll-padding-top: 96px;
+    -webkit-text-size-adjust: 100%;
   }
 
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(80px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeDown {
-  from {
-    opacity: 0;
-    transform: translateY(-40px);
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    overflow-x: clip;
+    background-color: var(--color-chalk);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes zoomImage {
-  from {
-    transform: scale(1);
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
   }
 
-  to {
-    transform: scale(1.08);
-  }
-}
-
-@keyframes orbit {
-  from {
-    transform: rotate(-25deg);
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
   }
 
-  to {
-    transform: rotate(335deg);
-  }
-}
-
-@keyframes unfold {
-  from {
-    clip-path: inset(0 0 100% 0);
-    opacity: 0.4;
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
   }
 
-  to {
-    clip-path: inset(0 0 0 0);
-    opacity: 1;
+  button:disabled {
+    cursor: not-allowed;
   }
-}
 
-/* ================= ANIMATION CLASSES ================= */
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
 
-.animate-slide-in {
-  animation: slideIn 1s ease-out forwards;
-}
+  img {
+    display: block;
+    max-width: 100%;
+  }
 
-.animate-fade-up {
-  animation: fadeUp 1s ease-out forwards;
-}
+  [hidden] {
+    display: none !important;
+  }
 
-.animate-fade-down {
-  animation: fadeDown 0.8s ease-out forwards;
-}
+  ::selection {
+    background-color: var(--color-wine);
+    color: var(--color-paper);
+  }
 
-.animate-image-zoom {
-  animation: zoomImage 8s ease-in-out infinite alternate;
-}
-
-.animate-orbit {
-  animation: orbit 24s linear infinite;
-}
-
-.animate-unfold {
-  animation: unfold 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  :focus-visible {
+    outline: 2px solid var(--color-wine);
+    outline-offset: 3px;
+  }
 }
 
 /* ================= REDUCED MOTION ================= */
@@ -187,10 +209,5 @@ img {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-
-  .animate-unfold {
-    clip-path: none;
-    opacity: 1;
   }
 }

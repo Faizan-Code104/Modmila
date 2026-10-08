@@ -1,8 +1,10 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 
-const TOKEN_KEY = "fablebelle-token";
-const USER_KEY = "fablebelle-user";
+import { STORAGE_KEYS } from "../storeInfo";
+
+const TOKEN_KEY = STORAGE_KEYS.token;
+const USER_KEY = STORAGE_KEYS.user;
 
 const AdminRoute = ({ children }) => {
   const location = useLocation();

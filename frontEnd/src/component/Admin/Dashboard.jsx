@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight,
@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 import { API_BASE_URL } from "../../config";
-import { BUSINESS_INFO } from "../../storeInfo";
+import { BUSINESS_INFO, STORAGE_KEYS } from "../../storeInfo";
 
 const apiBase = String(API_BASE_URL || "").replace(/\/+$/, "");
 
@@ -111,6 +111,19 @@ const getChange = (current, previous) => {
   return `${change > 0 ? "+" : ""}${change.toFixed(1)}% vs. previous month`;
 };
 
+
+/* Colour per fulfillment status (used by the ring + list + badges) */
+const STATUS_STYLE = {
+  Pending: { color: "#c9b28f", badge: "bg-sand/60 text-ink" },
+  Processing: { color: "#8a5a5f", badge: "bg-wine-soft text-wine" },
+  Shipped: { color: "#2b2523", badge: "bg-ink text-paper" },
+  Delivered: { color: "#4f7a5a", badge: "bg-success/15 text-success" },
+  Cancelled: { color: "#a33a3a", badge: "bg-danger/10 text-danger" },
+};
+
+const statusStyle = (status) =>
+  STATUS_STYLE[status] || { color: "#b9b0a6", badge: "bg-linen text-muted" };
+
 const ProductThumbnail = ({ image, rank }) => {
   const src = getImageUrl(image);
   const [failed, setFailed] = useState(false);
@@ -120,13 +133,14 @@ const ProductThumbnail = ({ image, rank }) => {
   }, [src]);
 
   return (
-    <div className="fbadmin-product-image">
+    <div className="grid h-[70px] w-[62px] shrink-0 place-items-center overflow-hidden bg-linen font-serif text-lg text-wine">
       {src && !failed ? (
         <img
           src={src}
           alt=""
           loading="lazy"
           onError={() => setFailed(true)}
+          className="size-full object-contain p-1.5 transition-transform duration-500 group-hover:scale-110"
         />
       ) : (
         <span>{String(rank).padStart(2, "0")}</span>
@@ -134,6 +148,58 @@ const ProductThumbnail = ({ image, rank }) => {
     </div>
   );
 };
+
+/* Card that tilts in 3D with the mouse (desktop only) */
+const TiltCard = ({ className = "", children }) => {
+  const ref = useRef(null);
+
+  const handleMove = (event) => {
+    const element = ref.current;
+    if (!element) return;
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+    const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+    element.style.transform = `rotateX(${-y * 6}deg) rotateY(${x * 8}deg)`;
+  };
+
+  const handleLeave = () => {
+    if (ref.current) ref.current.style.transform = "";
+  };
+
+  return (
+    <div onMouseMove={handleMove} onMouseLeave={handleLeave} className="perspective-[1400px]">
+      <div ref={ref} className={`transform-3d transition-transform duration-500 ease-soft ${className}`}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+const panelClass = "min-w-0 border border-line bg-paper";
+const eyebrowClass = "text-[10px] font-bold uppercase tracking-[0.2em] text-wine";
+
+const SectionHeading = ({ eyebrow, title, children }) => (
+  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-5 sm:px-6">
+    <div>
+      <p className={eyebrowClass}>{eyebrow}</p>
+      <h2 className="mt-1 font-serif text-2xl leading-tight text-ink sm:text-[28px]">{title}</h2>
+    </div>
+    {children}
+  </div>
+);
+
+const TextLink = ({ to, children }) => (
+  <Link
+    to={to}
+    className="group inline-flex min-h-11 shrink-0 items-center gap-2 text-xs font-semibold text-ink hover:text-wine"
+  >
+    {children}
+    <ArrowUpRight size={16} aria-hidden="true" className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+  </Link>
+);
 
 const Dashboard = () => {
   const [data, setData] = useState(null);
@@ -153,7 +219,7 @@ const Dashboard = () => {
         let token;
 
         try {
-          token = localStorage.getItem("fablebelle-token");
+          token = localStorage.getItem(STORAGE_KEYS.token);
         } catch {
           throw new Error("Unable to access your login. Please sign in again.");
         }
@@ -391,53 +457,100 @@ const Dashboard = () => {
     };
   }, [data]);
 
-  return (
-    <main className="fbadmin">
-      <style>{styles}</style>
+  /* bars + rings grow in after each successful load */
+  const [grown, setGrown] = useState(false);
 
-      <header className="fbadmin-heading">
+  useEffect(() => {
+    if (!overview) return undefined;
+    setGrown(false);
+    const frame = requestAnimationFrame(() =>
+      requestAnimationFrame(() => setGrown(true))
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [overview]);
+
+  /* conic-gradient ring for fulfillment status */
+  const ring = useMemo(() => {
+    if (!overview) return "";
+    let start = 0;
+    const stops = overview.statuses
+      .filter((row) => row.count > 0)
+      .map((row) => {
+        const end = start + row.percent;
+        const stop = `${statusStyle(row.status).color} ${start}% ${end}%`;
+        start = end;
+        return stop;
+      });
+    return stops.length
+      ? `conic-gradient(${stops.join(", ")})`
+      : "conic-gradient(var(--color-linen) 0% 100%)";
+  }, [overview]);
+
+  const totalOrders = overview
+    ? overview.statuses.reduce((sum, row) => sum + row.count, 0)
+    : 0;
+
+  return (
+    <div className="min-w-0 font-sans text-ink">
+      {/* ============ Heading ============ */}
+      <header className="flex flex-col items-start justify-between gap-5 border-b border-line pb-6 sm:flex-row sm:items-end">
         <div>
-          <p className="fbadmin-eyebrow">
+          <p className={`${eyebrowClass} animate-rise`}>
             {BUSINESS_INFO.businessName} / Admin
           </p>
-          <h1>Store overview.</h1>
-          <p>Your orders, collection and customers at a glance.</p>
+          <h1 className="mt-2 font-serif text-[clamp(38px,5vw,64px)] leading-[0.95] tracking-[-0.03em] perspective-distant">
+            <span className="inline-block animate-fold-in [animation-delay:80ms]">Store</span>{" "}
+            <em className="inline-block animate-fold-in text-wine [animation-delay:200ms]">overview.</em>
+          </h1>
+          <p className="mt-3 animate-rise text-sm text-muted [animation-delay:260ms]">
+            Your orders, collection and customers at a glance.
+          </p>
         </div>
 
-        <div className="fbadmin-actions">
+        <div className="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
           <button
             type="button"
             disabled={loading}
             onClick={() => setRefreshCount((value) => value + 1)}
-            className="fbadmin-refresh"
+            className="inline-flex min-h-12 flex-1 items-center justify-center gap-2.5 border border-line bg-paper px-5 text-xs font-semibold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
           >
             <RefreshCw
               size={16}
-              className={loading ? "fbadmin-spin" : ""}
+              className={loading ? "animate-spin" : ""}
               aria-hidden="true"
             />
             {loading ? "Loading…" : "Refresh"}
           </button>
 
-          <Link to="/shop" className="fbadmin-primary">
+          <Link
+            to="/shop"
+            className="group inline-flex min-h-12 flex-1 items-center justify-center gap-2.5 bg-ink px-5 text-xs font-semibold text-paper transition-colors hover:bg-wine sm:flex-none"
+          >
             View store
-            <ArrowUpRight size={17} aria-hidden="true" />
+            <ArrowUpRight size={17} aria-hidden="true" className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
           </Link>
         </div>
       </header>
 
       {errorMessage && (
-        <div className="fbadmin-error" role="alert">
+        <div className="mt-5 border border-danger/30 border-l-4 border-l-danger bg-danger/5 px-5 py-4 text-sm text-danger" role="alert">
           {errorMessage}
-          {data && <p>The figures below show the last successful update.</p>}
+          {data && <p className="mt-1.5 text-xs">The figures below show the last successful update.</p>}
         </div>
       )}
 
       {!data ? (
-        <div className="fbadmin-state" role={loading ? "status" : undefined}>
+        <div
+          className="mt-6 flex min-h-[360px] flex-col items-center justify-center gap-4 border border-dashed border-line bg-paper p-8 text-center text-sm text-muted"
+          role={loading ? "status" : undefined}
+        >
           {loading ? (
             <>
-              <Loader2 size={30} className="fbadmin-spin" aria-hidden="true" />
+              <div aria-hidden="true" className="perspective-[600px]">
+                <div className="grid size-16 place-items-center bg-ink text-paper [transform:rotateX(35deg)_rotateZ(-20deg)]">
+                  <Loader2 size={26} className="animate-spin" />
+                </div>
+              </div>
               <p>Loading your store overview…</p>
             </>
           ) : (
@@ -445,10 +558,10 @@ const Dashboard = () => {
           )}
         </div>
       ) : (
-        <div className="fbadmin-content" aria-busy={loading}>
-          <div className="fbadmin-update">
+        <div className={`transition-opacity duration-300 ${loading ? "opacity-60" : ""}`} aria-busy={loading}>
+          <div className="flex flex-wrap justify-end gap-2 py-4 text-[11px] text-muted">
             <span>Last updated</span>
-            <time dateTime={data.updatedAt.toISOString()}>
+            <time dateTime={data.updatedAt.toISOString()} className="font-semibold text-ink">
               {data.updatedAt.toLocaleString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -458,700 +571,261 @@ const Dashboard = () => {
             </time>
           </div>
 
-          <section className="fbadmin-overview" aria-label="Store totals">
-            <div className="fbadmin-value-panel">
-              <p className="fbadmin-eyebrow">All-time order value</p>
-              <h2>{money(overview.totalValue)}</h2>
-              <p className="fbadmin-value-note">
-                Total of non-cancelled orders; this is not a confirmed
-                payment or net-profit figure.
-              </p>
-
-              <div className="fbadmin-value-bottom">
-                <div>
-                  <span>This month</span>
-                  <strong>{money(overview.currentValue)}</strong>
+          {/* ============ Bento: value + stats ============ */}
+          <section aria-label="Store totals" className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+            <TiltCard className="h-full">
+              <div className="relative h-full overflow-hidden bg-ink p-6 text-paper sm:p-8">
+                {/* floating folded swatches */}
+                <div aria-hidden="true" className="pointer-events-none absolute -right-6 -top-6 hidden size-44 sm:block">
+                  <span className="absolute inset-0 rotate-12 bg-wine/70 [transform:translateZ(30px)_rotate(12deg)]" />
+                  <span className="absolute inset-6 -rotate-6 bg-sand/40" />
+                  <span className="absolute inset-12 rotate-3 border border-dashed border-paper/40" />
                 </div>
-                <div>
-                  <span>Average order value</span>
-                  <strong>{money(overview.average)}</strong>
-                </div>
-              </div>
 
-              <p className="fbadmin-comparison">{overview.valueChange}</p>
-            </div>
+                <p className="relative text-[10px] font-bold uppercase tracking-[0.2em] text-[#d9a9ae]">
+                  All-time order value
+                </p>
+                <h2 className="relative mt-4 font-serif text-[clamp(40px,5.5vw,72px)] leading-none tracking-[-0.03em] [overflow-wrap:anywhere]">
+                  {money(overview.totalValue)}
+                </h2>
+                <p className="relative mt-4 max-w-md text-xs leading-relaxed text-paper/60">
+                  Total of non-cancelled orders; this is not a confirmed
+                  payment or net-profit figure.
+                </p>
 
-            <div className="fbadmin-stats">
-              {overview.stats.map(({ title, value, change, Icon, href }) => (
-                <Link to={href} className="fbadmin-stat" key={title}>
-                  <Icon size={20} aria-hidden="true" />
+                <div className="relative mt-8 grid grid-cols-1 gap-5 border-t border-paper/15 pt-6 min-[400px]:grid-cols-2">
                   <div>
-                    <span>{title}</span>
-                    <strong>{value.toLocaleString()}</strong>
-                    <p>{change}</p>
+                    <span className="block text-[10px] uppercase tracking-[0.16em] text-paper/50">This month</span>
+                    <strong className="mt-1 block font-serif text-3xl font-normal [overflow-wrap:anywhere]">
+                      {money(overview.currentValue)}
+                    </strong>
                   </div>
-                  <ArrowUpRight size={17} aria-hidden="true" />
+                  <div>
+                    <span className="block text-[10px] uppercase tracking-[0.16em] text-paper/50">Average order value</span>
+                    <strong className="mt-1 block font-serif text-3xl font-normal [overflow-wrap:anywhere]">
+                      {money(overview.average)}
+                    </strong>
+                  </div>
+                </div>
+
+                <p className="relative mt-5 inline-flex bg-paper/10 px-3 py-1.5 text-[11px] text-[#e6c4c7]">
+                  {overview.valueChange}
+                </p>
+              </div>
+            </TiltCard>
+
+            <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-1">
+              {overview.stats.map(({ title, value, change, Icon, href }, index) => (
+                <Link
+                  to={href}
+                  key={title}
+                  style={{ animationDelay: `${index * 90}ms` }}
+                  className="group relative flex animate-rise items-center gap-4 overflow-hidden border border-line bg-paper p-5 transition-all duration-300 hover:-translate-y-1 hover:border-ink hover:shadow-[0_20px_40px_-28px_rgba(0,0,0,0.5)]"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-y-0 left-0 w-1 origin-bottom scale-y-0 bg-wine transition-transform duration-500 group-hover:scale-y-100"
+                  />
+                  <span className="grid size-12 shrink-0 place-items-center bg-linen text-wine transition-transform duration-500 group-hover:[transform:rotateY(180deg)]">
+                    <Icon size={20} aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{title}</span>
+                    <strong className="block font-serif text-4xl font-normal leading-tight">{value.toLocaleString()}</strong>
+                    <p className="text-[11px] text-muted">{change}</p>
+                  </div>
+                  <ArrowUpRight size={17} aria-hidden="true" className="ml-auto shrink-0 text-muted transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-wine" />
                 </Link>
               ))}
             </div>
           </section>
 
-          <section className="fbadmin-panel fbadmin-sales">
-            <div className="fbadmin-section-heading">
-              <div>
-                <p className="fbadmin-eyebrow">Monthly activity</p>
-                <h2>Order value over time</h2>
+          {/* ============ Monthly chart ============ */}
+          <section className={`${panelClass} mt-4`}>
+            <SectionHeading eyebrow="Monthly activity" title="Order value over time">
+              <div className="text-left sm:text-right">
+                <strong className="block font-serif text-2xl font-normal">{money(overview.periodValue)}</strong>
+                <span className="text-[11px] text-muted">Last 12 months · non-cancelled orders</span>
               </div>
-              <div className="fbadmin-period-total">
-                <strong>{money(overview.periodValue)}</strong>
-                <span>Last 12 months · non-cancelled orders</span>
-              </div>
-            </div>
+            </SectionHeading>
 
-            <div className="fbadmin-chart-scroll">
-              <div className="fbadmin-chart" aria-label="Monthly order values">
-                {overview.months.map((month) => (
-                  <div className="fbadmin-chart-column" key={month.key}>
-                    <div className="fbadmin-chart-track">
+            <div className="no-scrollbar overflow-x-auto px-5 pb-6 pt-8 sm:px-6">
+              <div className="grid min-w-[640px] grid-cols-12 gap-3" aria-label="Monthly order values">
+                {overview.months.map((month, index) => (
+                  <div key={month.key} className="group min-w-0 text-center">
+                    <div className="relative flex h-52 items-end border-b border-line bg-[repeating-linear-gradient(to_top,transparent_0,transparent_51px,var(--color-line)_52px)]">
+                      <span className="pointer-events-none absolute inset-x-0 -top-1 z-10 -translate-y-full whitespace-nowrap bg-ink px-1.5 py-1 text-[10px] text-paper opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                        {money(month.value)}
+                      </span>
                       <div
-                        className="fbadmin-chart-bar"
-                        style={{ height: `${month.height}%` }}
+                        style={{
+                          height: grown ? `${month.height}%` : "0%",
+                          transitionDelay: `${index * 45}ms`,
+                        }}
+                        className={`w-full transition-[height] duration-700 ease-soft group-hover:brightness-125 ${
+                          index === overview.months.length - 1
+                            ? "bg-wine"
+                            : index % 2
+                              ? "bg-sand"
+                              : "bg-ink"
+                        }`}
                       />
                     </div>
-                    <span>{month.label}</span>
-                    <span className="fbadmin-chart-value">
-                      {money(month.value)}
-                    </span>
-                    <span className="fbadmin-sr-only">{month.fullLabel}</span>
+                    <span className="mt-2.5 block text-[11px] text-muted">{month.label}</span>
+                    <span className="mt-0.5 block text-[10px] text-ink [overflow-wrap:anywhere]">{money(month.value)}</span>
+                    <span className="sr-only">{month.fullLabel}</span>
                   </div>
                 ))}
               </div>
             </div>
           </section>
 
-          <section className="fbadmin-panel fbadmin-orders">
-            <div className="fbadmin-section-heading">
-              <div>
-                <p className="fbadmin-eyebrow">Latest activity</p>
-                <h2>Recent orders</h2>
-              </div>
-              <Link to="/admin/orders" className="fbadmin-text-link">
-                All orders
-                <ArrowUpRight size={17} aria-hidden="true" />
-              </Link>
-            </div>
+          {/* ============ Recent orders ============ */}
+          <section className={`${panelClass} mt-4`}>
+            <SectionHeading eyebrow="Latest activity" title="Recent orders">
+              <TextLink to="/admin/orders">All orders</TextLink>
+            </SectionHeading>
 
             {!overview.recentOrders.length ? (
-              <p className="fbadmin-empty">No orders have been placed yet.</p>
+              <p className="px-6 py-10 text-center text-sm text-muted">No orders have been placed yet.</p>
             ) : (
-              <div className="fbadmin-order-list">
-                {overview.recentOrders.map((order, index) => (
-                  <article
-                    className="fbadmin-order"
-                    key={getId(order) || index}
-                  >
-                    <div className="fbadmin-order-id">
-                      <strong>{order.orderNumber || "Order"}</strong>
-                      <span>{formatDate(order.createdAt)}</span>
-                    </div>
+              <ul>
+                {overview.recentOrders.map((order, index) => {
+                  const status = getStatus(order);
 
-                    <div className="fbadmin-order-customer">
-                      <strong>{getCustomer(order)}</strong>
-                      <span>{getOrderSummary(order)}</span>
-                    </div>
-
-                    <span className="fbadmin-badge">{getStatus(order)}</span>
-                    <strong className="fbadmin-order-price">
-                      {money(order.totalAmount)}
-                    </strong>
-
-                    <Link
-                      to="/admin/orders"
-                      className="fbadmin-order-link"
-                      aria-label={`Open orders to review ${
-                        order.orderNumber || "this order"
-                      }`}
+                  return (
+                    <li
+                      key={getId(order) || index}
+                      style={{ animationDelay: `${index * 70}ms` }}
+                      className="grid animate-rise grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 border-b border-line px-5 py-4 transition-colors last:border-b-0 hover:bg-chalk sm:px-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_120px_minmax(90px,0.6fr)_44px] md:gap-5"
                     >
-                      <ArrowUpRight size={19} aria-hidden="true" />
-                    </Link>
-                  </article>
-                ))}
-              </div>
+                      <div className="min-w-0">
+                        <strong className="block text-sm font-semibold [overflow-wrap:anywhere]">{order.orderNumber || "Order"}</strong>
+                        <span className="text-[11px] text-muted">{formatDate(order.createdAt)}</span>
+                      </div>
+
+                      <span className={`justify-self-end px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] md:order-3 md:justify-self-start ${statusStyle(status).badge}`}>
+                        {status}
+                      </span>
+
+                      <div className="min-w-0 md:order-2">
+                        <strong className="block text-sm font-semibold [overflow-wrap:anywhere]">{getCustomer(order)}</strong>
+                        <span className="text-[11px] text-muted [overflow-wrap:anywhere]">{getOrderSummary(order)}</span>
+                      </div>
+
+                      <strong className="justify-self-end font-serif text-xl font-normal md:order-4">
+                        {money(order.totalAmount)}
+                      </strong>
+
+                      <Link
+                        to="/admin/orders"
+                        aria-label={`Open orders to review ${order.orderNumber || "this order"}`}
+                        className="hidden size-11 place-items-center border border-line transition-colors hover:border-ink hover:bg-ink hover:text-paper md:order-5 md:grid"
+                      >
+                        <ArrowUpRight size={18} aria-hidden="true" />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </section>
 
-          <div className="fbadmin-bottom-grid">
-            <section className="fbadmin-panel">
-              <div className="fbadmin-section-heading">
-                <div>
-                  <p className="fbadmin-eyebrow">Order distribution</p>
-                  <h2>Fulfillment status</h2>
-                </div>
-              </div>
+          {/* ============ Status + top products ============ */}
+          <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+            <section className={panelClass}>
+              <SectionHeading eyebrow="Order distribution" title="Fulfillment status" />
 
-              <div className="fbadmin-status-list">
-                {overview.statuses.map((row) => (
-                  <div className="fbadmin-status" key={row.status}>
-                    <div>
-                      <span>{row.status}</span>
-                      <strong>
-                        {row.count} <span> / {row.percent.toFixed(0)}%</span>
-                      </strong>
-                    </div>
-                    <div className="fbadmin-progress" aria-hidden="true">
-                      <span style={{ width: `${row.percent}%` }} />
+              <div className="grid items-center gap-6 p-5 sm:grid-cols-[180px_minmax(0,1fr)] sm:p-6">
+                {/* 3D tilted ring */}
+                <div aria-hidden="true" className="mx-auto perspective-[700px]">
+                  <div
+                    style={{ background: ring }}
+                    className={`relative grid size-40 place-items-center rounded-full shadow-[0_24px_30px_-18px_rgba(0,0,0,0.45)] transition-transform duration-1000 ease-soft hover:[transform:rotateX(0deg)] ${
+                      grown ? "[transform:rotateX(28deg)]" : "[transform:rotateX(28deg)_rotateZ(-180deg)_scale(0.6)]"
+                    }`}
+                  >
+                    <div className="grid size-24 place-items-center rounded-full bg-paper text-center">
+                      <div>
+                        <strong className="block font-serif text-3xl font-normal leading-none">{totalOrders}</strong>
+                        <span className="text-[9px] uppercase tracking-[0.18em] text-muted">Orders</span>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="fbadmin-panel">
-              <div className="fbadmin-section-heading">
-                <div>
-                  <p className="fbadmin-eyebrow">Ranked by order item value</p>
-                  <h2>Top products</h2>
                 </div>
-                <Link to="/admin/products" className="fbadmin-text-link">
-                  Manage
-                  <ArrowUpRight size={17} aria-hidden="true" />
-                </Link>
-              </div>
 
-              {!overview.topProducts.length ? (
-                <p className="fbadmin-empty">
-                  Products will appear here when order activity is available.
-                </p>
-              ) : (
-                <div className="fbadmin-product-list">
-                  {overview.topProducts.map((product, index) => (
-                    <div className="fbadmin-product" key={product.key}>
-                      <ProductThumbnail image={product.image} rank={index + 1} />
-                      <div>
-                        <h3>{product.name}</h3>
-                        <p>{product.category}</p>
-                        <span>{product.units.toLocaleString()} units ordered</span>
+                <div className="grid gap-4">
+                  {overview.statuses.map((row) => (
+                    <div key={row.status}>
+                      <div className="mb-1.5 flex justify-between gap-3 text-xs">
+                        <span className="flex items-center gap-2">
+                          <span className="size-2.5 rounded-full" style={{ background: statusStyle(row.status).color }} />
+                          {row.status}
+                        </span>
+                        <strong className="font-semibold">
+                          {row.count} <span className="font-normal text-muted"> / {row.percent.toFixed(0)}%</span>
+                        </strong>
                       </div>
-                      <strong>{money(product.value)}</strong>
+                      <div className="h-1.5 bg-linen" aria-hidden="true">
+                        <span
+                          className="block h-full transition-[width] duration-1000 ease-soft"
+                          style={{
+                            width: grown ? `${row.percent}%` : "0%",
+                            background: statusStyle(row.status).color,
+                          }}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
+              </div>
+            </section>
+
+            <section className={panelClass}>
+              <SectionHeading eyebrow="Ranked by order item value" title="Top products">
+                <TextLink to="/admin/products">Manage</TextLink>
+              </SectionHeading>
+
+              {!overview.topProducts.length ? (
+                <p className="px-6 py-10 text-center text-sm text-muted">
+                  Products will appear here when order activity is available.
+                </p>
+              ) : (
+                <ol>
+                  {overview.topProducts.map((product, index) => (
+                    <li
+                      key={product.key}
+                      className="group flex flex-wrap items-center gap-4 border-b border-line px-5 py-4 transition-colors last:border-b-0 hover:bg-chalk sm:flex-nowrap sm:px-6"
+                    >
+                      <span className="w-6 shrink-0 font-serif text-2xl text-line transition-colors group-hover:text-wine">
+                        {index + 1}
+                      </span>
+                      <ProductThumbnail image={product.image} rank={index + 1} />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{product.name}</h3>
+                        <p className="mt-0.5 text-[11px] text-wine">{product.category}</p>
+                        <span className="text-[11px] text-muted">{product.units.toLocaleString()} units ordered</span>
+                      </div>
+                      <strong className="ml-auto font-serif text-xl font-normal">{money(product.value)}</strong>
+                    </li>
+                  ))}
+                </ol>
               )}
             </section>
           </div>
 
-          <footer className="fbadmin-footer">
+          <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4 text-[11px] text-muted">
             <span>{BUSINESS_INFO.businessName} / Store management</span>
-            <div>
-              <Link to="/admin/products">Products</Link>
-              <Link to="/admin/orders">Orders</Link>
-              <Link to="/admin/users">Customers</Link>
+            <div className="flex gap-5">
+              <Link to="/admin/products" className="inline-flex min-h-11 items-center hover:text-wine">Products</Link>
+              <Link to="/admin/orders" className="inline-flex min-h-11 items-center hover:text-wine">Orders</Link>
+              <Link to="/admin/users" className="inline-flex min-h-11 items-center hover:text-wine">Customers</Link>
             </div>
           </footer>
         </div>
       )}
-    </main>
+    </div>
   );
 };
-
-const styles = `
-  .fbadmin {
-    --ink: #173f36;
-    --deep: #102e28;
-    --paper: #fffdf5;
-    --bone: #f5f0e6;
-    --muted: #626e67;
-    --brass: #a56e4f;
-    --line: rgba(23, 63, 54, .16);
-
-    width: 100%;
-    min-width: 0;
-    padding: clamp(18px, 3vw, 36px);
-    background: var(--bone);
-    color: var(--ink);
-    font-family: 'Onest', ui-sans-serif, system-ui, sans-serif;
-    line-height: 1.6;
-  }
-
-  .fbadmin *, .fbadmin *::before, .fbadmin *::after {
-    box-sizing: border-box;
-  }
-
-  .fbadmin a { color: inherit; text-decoration: none; }
-  .fbadmin button { font: inherit; cursor: pointer; }
-
-  .fbadmin a:focus-visible, .fbadmin button:focus-visible {
-    outline: 2px solid var(--brass);
-    outline-offset: 4px;
-  }
-
-  .fbadmin-heading {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 25px;
-    padding-bottom: 26px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fbadmin-eyebrow {
-    margin: 0;
-    color: var(--brass);
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-  }
-
-  .fbadmin-heading h1 {
-    margin: 10px 0 8px;
-    font-size: clamp(30px, 4vw, 44px);
-    font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: -.05em;
-  }
-
-  .fbadmin-heading > div > p:last-child {
-    margin: 0;
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .fbadmin-actions {
-    display: flex;
-    flex-shrink: 0;
-    gap: 10px;
-  }
-
-  .fbadmin-primary, .fbadmin-refresh {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    min-height: 46px;
-    padding: 12px 17px;
-    border: 1px solid var(--ink);
-    background: var(--ink);
-    color: #fff !important;
-    font-size: 11px;
-    font-weight: 500;
-  }
-
-  .fbadmin-primary:hover { background: var(--deep); }
-
-  .fbadmin-refresh {
-    border-color: var(--line);
-    background: var(--paper);
-    color: var(--ink) !important;
-  }
-
-  .fbadmin-refresh:disabled { cursor: not-allowed; opacity: .6; }
-
-  .fbadmin-update {
-    display: flex;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding-block: 18px;
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fbadmin-overview {
-    display: grid;
-    grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
-    gap: 20px;
-  }
-
-  .fbadmin-value-panel {
-    padding: 30px;
-    background: var(--ink);
-    color: #fffdf5;
-  }
-
-  .fbadmin-value-panel .fbadmin-eyebrow { color: #d7e5a5; }
-
-  .fbadmin-value-panel h2 {
-    margin: 20px 0 14px;
-    font-size: clamp(34px, 4.6vw, 58px);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.055em;
-    overflow-wrap: anywhere;
-  }
-
-  .fbadmin-value-note {
-    max-width: 440px;
-    margin: 0;
-    color: #d0d9ce;
-    font-size: 11px;
-    line-height: 1.8;
-  }
-
-  .fbadmin-value-bottom {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 25px;
-    margin-top: 30px;
-    padding-top: 24px;
-    border-top: 1px solid rgba(255,255,255,.2);
-  }
-
-  .fbadmin-value-bottom span {
-    display: block;
-    color: #d0d9ce;
-    font-size: 10px;
-  }
-
-  .fbadmin-value-bottom strong {
-    display: block;
-    margin-top: 6px;
-    font-size: 20px;
-    font-weight: 500;
-    overflow-wrap: anywhere;
-  }
-
-  .fbadmin-comparison {
-    margin: 20px 0 0;
-    color: #d7e5a5;
-    font-size: 10px;
-  }
-
-  .fbadmin-stats {
-    display: grid;
-    gap: 12px;
-  }
-
-  .fbadmin-stat {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    min-width: 0;
-    padding: 20px;
-    border: 1px solid var(--line);
-    background: var(--paper);
-  }
-
-  .fbadmin-stat > svg { flex-shrink: 0; }
-  .fbadmin-stat > svg:first-child { color: var(--brass); }
-  .fbadmin-stat > svg:last-child { margin-left: auto; }
-  .fbadmin-stat > div { min-width: 0; }
-  .fbadmin-stat span { color: var(--muted); font-size: 10px; }
-
-  .fbadmin-stat strong {
-    display: block;
-    font-size: 27px;
-    font-weight: 500;
-    line-height: 1.25;
-    overflow-wrap: anywhere;
-  }
-
-  .fbadmin-stat p {
-    margin: 5px 0 0;
-    color: var(--muted);
-    font-size: 9px;
-  }
-
-  .fbadmin-panel {
-    min-width: 0;
-    margin-top: 22px;
-    border: 1px solid var(--line);
-    background: var(--paper);
-  }
-
-  .fbadmin-section-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 22px;
-    padding: 24px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fbadmin-section-heading h2 {
-    margin: 8px 0 0;
-    font-size: 23px;
-    font-weight: 500;
-    letter-spacing: -.04em;
-    line-height: 1.25;
-  }
-
-  .fbadmin-period-total { text-align: right; }
-  .fbadmin-period-total strong { display: block; font-size: 22px; font-weight: 500; }
-  .fbadmin-period-total span { color: var(--muted); font-size: 9px; }
-
-  .fbadmin-chart-scroll { overflow-x: auto; padding: 28px 24px; }
-
-  .fbadmin-chart {
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 15px;
-    min-width: 670px;
-  }
-
-  .fbadmin-chart-column { min-width: 0; text-align: center; }
-
-  .fbadmin-chart-track {
-    display: flex;
-    align-items: flex-end;
-    height: 190px;
-    border-bottom: 1px solid var(--line);
-    background: repeating-linear-gradient(
-      to top,
-      transparent 0,
-      transparent 46px,
-      rgba(23,63,54,.07) 47px,
-      transparent 48px
-    );
-  }
-
-  .fbadmin-chart-bar {
-    width: 100%;
-    background: var(--ink);
-    transition: height .35s ease;
-  }
-
-  .fbadmin-chart-column:nth-child(even) .fbadmin-chart-bar {
-    background: #a56e4f;
-  }
-
-  .fbadmin-chart-column > span {
-    display: block;
-    margin-top: 10px;
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fbadmin-chart-column > .fbadmin-chart-value {
-    margin-top: 4px;
-    color: var(--ink);
-    font-size: 9px;
-    overflow-wrap: anywhere;
-  }
-
-  .fbadmin-text-link {
-    display: inline-flex;
-    align-items: center;
-    flex-shrink: 0;
-    gap: 12px;
-    min-height: 44px;
-    font-size: 11px;
-  }
-
-  .fbadmin-order {
-    display: grid;
-    grid-template-columns:
-      minmax(0, 1fr)
-      minmax(0, 1.4fr)
-      auto
-      minmax(90px, .6fr)
-      44px;
-    align-items: center;
-    gap: 20px;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fbadmin-order:last-child { border-bottom: 0; }
-
-  .fbadmin-order-id, .fbadmin-order-customer { min-width: 0; }
-
-  .fbadmin-order strong { font-size: 12px; font-weight: 500; overflow-wrap: anywhere; }
-
-  .fbadmin-order-id span, .fbadmin-order-customer span {
-    display: block;
-    margin-top: 5px;
-    color: var(--muted);
-    font-size: 10px;
-    overflow-wrap: anywhere;
-  }
-
-  .fbadmin-badge {
-    padding: 6px 10px;
-    background: var(--bone);
-    font-size: 9px;
-  }
-
-  .fbadmin-order-price { text-align: right; }
-
-  .fbadmin-order-link {
-    display: grid;
-    place-items: center;
-    width: 44px;
-    height: 44px;
-    border: 1px solid var(--line);
-  }
-
-  .fbadmin-bottom-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-    gap: 22px;
-  }
-
-  .fbadmin-status-list { padding: 24px; }
-  .fbadmin-status + .fbadmin-status { margin-top: 20px; }
-
-  .fbadmin-status > div:first-child {
-    display: flex;
-    justify-content: space-between;
-    gap: 15px;
-    margin-bottom: 9px;
-    font-size: 11px;
-  }
-
-  .fbadmin-status strong { font-weight: 500; }
-  .fbadmin-status strong > span { color: var(--muted); font-size: 10px; }
-
-  .fbadmin-progress { height: 5px; background: var(--bone); }
-  .fbadmin-progress > span { display: block; height: 100%; background: var(--ink); }
-
-  .fbadmin-status:nth-child(even) .fbadmin-progress > span {
-    background: var(--brass);
-  }
-
-  .fbadmin-product {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .fbadmin-product:last-child { border-bottom: 0; }
-  .fbadmin-product > div:nth-child(2) { min-width: 0; flex: 1; }
-
-  .fbadmin-product-image {
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-    width: 62px;
-    height: 70px;
-    background: var(--bone);
-    color: var(--brass);
-    font-size: 12px;
-  }
-
-  .fbadmin-product-image img {
-    width: 100%;
-    height: 100%;
-    padding: 6px;
-    object-fit: contain;
-  }
-
-  .fbadmin-product h3 {
-    margin: 0;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-  }
-
-  .fbadmin-product p { margin: 4px 0; color: var(--muted); font-size: 9px; }
-  .fbadmin-product > div > span { color: var(--muted); font-size: 9px; }
-  .fbadmin-product > strong { font-size: 11px; font-weight: 500; }
-
-  .fbadmin-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
-    padding-top: 25px;
-    margin-top: 25px;
-    border-top: 1px solid var(--line);
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fbadmin-footer > div { display: flex; gap: 20px; }
-  .fbadmin-footer a { display: inline-flex; align-items: center; min-height: 44px; }
-
-  .fbadmin-error {
-    margin-top: 22px;
-    padding: 16px 20px;
-    border: 1px solid #dfbdb5;
-    background: #fbefec;
-    color: #a13832;
-    font-size: 12px;
-  }
-
-  .fbadmin-error p { margin: 8px 0 0; font-size: 11px; }
-
-  .fbadmin-state {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    min-height: 350px;
-    padding: 30px;
-    text-align: center;
-    color: var(--muted);
-    font-size: 13px;
-  }
-
-  .fbadmin-empty {
-    padding: 38px 24px;
-    margin: 0;
-    color: var(--muted);
-    font-size: 12px;
-    text-align: center;
-  }
-
-  .fbadmin-sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0,0,0,0);
-    white-space: nowrap;
-  }
-
-  .fbadmin-spin { animation: fbadminSpin 1s linear infinite; }
-
-  @keyframes fbadminSpin { to { transform: rotate(360deg); } }
-
-  @media (max-width: 1050px) {
-    .fbadmin-heading { align-items: flex-start; flex-direction: column; }
-    .fbadmin-overview { grid-template-columns: minmax(0, 1fr); }
-    .fbadmin-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .fbadmin-stat { align-items: flex-start; gap: 12px; padding: 18px; }
-    .fbadmin-stat > svg:last-child { display: none; }
-    .fbadmin-bottom-grid { grid-template-columns: minmax(0, 1fr); }
-  }
-
-  @media (max-width: 720px) {
-    .fbadmin-stats { grid-template-columns: minmax(0, 1fr); }
-    .fbadmin-stat > svg:last-child { display: block; }
-    .fbadmin-stat { align-items: center; }
-    .fbadmin-value-panel { padding: 24px; }
-    .fbadmin-section-heading { padding: 20px; flex-wrap: wrap; gap: 12px; }
-    .fbadmin-period-total { text-align: left; }
-    .fbadmin-order { grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 20px; }
-    .fbadmin-order-id { grid-column: 1; }
-    .fbadmin-order-customer { grid-column: 1; grid-row: 2; }
-    .fbadmin-badge { grid-column: 2; grid-row: 1; }
-    .fbadmin-order-price { grid-column: 1; grid-row: 3; text-align: left; }
-    .fbadmin-order-link { grid-column: 2; grid-row: 3; justify-self: end; }
-    .fbadmin-product { padding: 18px 20px; gap: 12px; flex-wrap: wrap; }
-    .fbadmin-status-list { padding: 20px; }
-  }
-
-  @media (max-width: 380px) {
-    .fbadmin-actions { width: 100%; flex-wrap: wrap; }
-    .fbadmin-actions > * { flex: 1; }
-    .fbadmin-value-bottom { grid-template-columns: minmax(0, 1fr); gap: 18px; }
-    .fbadmin-value-panel h2 { font-size: 34px; }
-    .fbadmin-product > strong { margin-left: 74px; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .fbadmin *, .fbadmin *::before, .fbadmin *::after {
-      animation: none !important;
-      transition: none !important;
-    }
-  }
-`;
 
 export default Dashboard;

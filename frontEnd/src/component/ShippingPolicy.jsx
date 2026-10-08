@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -9,6 +9,9 @@ import {
   Truck,
 } from "lucide-react";
 import { BUSINESS_INFO, getFullAddress } from "../storeInfo";
+
+const POLICY_TITLE = "Shipping Policy";
+const UPDATED_ISO = "2026-10-08";
 
 const JOURNEY = [
   {
@@ -37,30 +40,21 @@ const JOURNEY = [
   },
 ];
 
+const linkClass =
+  "font-semibold text-ink underline decoration-wine/40 underline-offset-4 transition-colors hover:text-wine";
+
 const SupportLink = () =>
   BUSINESS_INFO.email ? (
-    <a href={`mailto:${BUSINESS_INFO.email}`}>
+    <a href={`mailto:${BUSINESS_INFO.email}`} className={linkClass}>
       {BUSINESS_INFO.email}
     </a>
   ) : (
-    <Link to="/contact">our support team</Link>
+    <Link to="/contact" className={linkClass}>
+      our support team
+    </Link>
   );
 
-const PolicySection = ({ id, number, title, children }) => (
-  <section
-    id={`fbshipping-${id}`}
-    className="fbshipping-section"
-    aria-labelledby={`fbshipping-title-${id}`}
-  >
-    <span className="fbshipping-number" aria-hidden="true">
-      {String(number).padStart(2, "0")}
-    </span>
-    <div>
-      <h2 id={`fbshipping-title-${id}`}>{title}</h2>
-      {children}
-    </div>
-  </section>
-);
+const B = ({ children }) => <strong className="font-semibold text-ink">{children}</strong>;
 
 const ShippingPolicy = () => {
   const brand = BUSINESS_INFO.businessName;
@@ -72,931 +66,562 @@ const ShippingPolicy = () => {
 
   const schedule = [
     BUSINESS_INFO.businessDays,
-    [BUSINESS_INFO.supportHours, BUSINESS_INFO.timeZone]
-      .filter(Boolean)
-      .join(" "),
+    [BUSINESS_INFO.supportHours, BUSINESS_INFO.timeZone].filter(Boolean).join(" "),
   ]
     .filter(Boolean)
     .join(", ");
 
-  return (
-    <main id="fbshipping-top" className="fbshipping-page">
-      <style>{styles}</style>
-
-      <div className="fbshipping-container">
-        <div className="fbshipping-topline">
-          <span>{brand} / Shipping Policy</span>
-          <Link to="/track-order">
-            Track your order
-            <ArrowUpRight size={16} aria-hidden="true" />
+  const sections = [
+    {
+      id: "area",
+      title: "Shipping area",
+      body: (
+        <>
+          <p>
+            We currently ship to deliverable addresses within the contiguous 48
+            United States.
+          </p>
+          <p>
+            We do not currently ship internationally or to Alaska, Hawaii, U.S.
+            territories, APO/FPO/DPO addresses, or P.O. boxes.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "cost",
+      title: "Shipping cost",
+      body: (
+        <>
+          <p>
+            {brand} provides <B>free standard shipping</B> on eligible orders
+            within our published U.S. shipping area.
+          </p>
+          <p>
+            Customers will not be charged a standard shipping fee unless a
+            different charge is clearly disclosed before completing the order.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "processing",
+      title: "Order processing",
+      body: (
+        <>
+          <p>
+            Orders are normally processed within <B>1–2 business days</B> after
+            payment authorization and order acceptance.
+          </p>
+          <p>
+            Business days are Monday through Friday and exclude federal
+            holidays. Orders submitted during weekends or holidays begin
+            processing on the following business day.
+          </p>
+          <p>
+            An order confirmation does not mean the order has shipped.
+            Customers will receive a separate shipping confirmation when
+            tracking becomes available.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "delivery",
+      title: "Estimated delivery",
+      body: (
+        <>
+          <p>
+            After processing, standard delivery normally takes{" "}
+            <B>3–7 business days</B>.
+          </p>
+          <p>
+            The estimated total period from order acceptance to delivery is
+            generally <B>4–9 business days</B>.
+          </p>
+          <p>
+            Delivery estimates are not guarantees. Severe weather, carrier
+            disruptions, incorrect addresses, holidays, emergencies, or other
+            circumstances outside our control may cause delays.
+          </p>
+          <p>
+            If we cannot ship within the promised period, we will notify the
+            customer and provide available options, including cancellation and
+            refund when required.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "method",
+      title: "Shipping method",
+      body: (
+        <>
+          <p>
+            Orders are shipped using standard ground or parcel delivery through
+            a recognized third-party carrier. The carrier used may depend on
+            the destination, package size, and operational availability.
+          </p>
+          <p>
+            Available tracking information will be included in the shipping
+            confirmation.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "accuracy",
+      title: "Address accuracy",
+      body: (
+        <>
+          <p>
+            Customers are responsible for providing a complete and accurate
+            delivery address.
+          </p>
+          <p>
+            Contact <SupportLink /> immediately if an address needs to be
+            corrected. We cannot guarantee changes after an order enters
+            fulfillment or has shipped.
+          </p>
+          <p>
+            {brand} is not responsible for delays or failed delivery caused by
+            incorrect or incomplete information supplied by the customer.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "tracking",
+      title: "Tracking",
+      body: (
+        <>
+          <p>
+            Tracking information may take up to 48 hours to update after a
+            label is created.
+          </p>
+          <p>
+            A carrier’s “delivered” scan does not always mean the package was
+            handed directly to the recipient. Customers should check the
+            delivery area, household members, property staff, and carrier
+            notices before reporting a missing delivery.
+          </p>
+          <p>
+            You can also use your {brand} order number on our{" "}
+            <Link to="/track-order" className={linkClass}>
+              Order Tracking page
+            </Link>
+            .
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "lost",
+      title: "Lost packages",
+      body: (
+        <>
+          <p>
+            If tracking does not update for an unusual period or a package
+            appears lost, contact{" "}
+            {BUSINESS_INFO.email ? (
+              <>
+                us at <SupportLink />
+              </>
+            ) : (
+              <SupportLink />
+            )}{" "}
+            with the order number.
+          </p>
+          <p>
+            We will review the shipment with the carrier and provide an
+            appropriate resolution based on the investigation and applicable
+            law.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "damaged",
+      title: "Damaged packages",
+      body: (
+        <>
+          <p>
+            If a package arrives visibly damaged, photograph the package and
+            product and contact us within <B>48 hours of delivery</B>.
+          </p>
+          <p>
+            Please retain the item, packaging, labels, and shipping materials
+            until we complete our review.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "undeliverable",
+      title: "Refused or undeliverable packages",
+      body: (
+        <>
+          <p>
+            A shipment returned because of refusal, an incorrect address,
+            repeated failed delivery, or failure to collect the package may be
+            treated as a return.
+          </p>
+          <p>
+            Any additional reshipping charge will be disclosed and approved
+            before reshipment. If a refund is requested, unavoidable carrier
+            charges incurred because of an incorrect address or refused
+            delivery may be deducted where legally permitted.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: "split",
+      title: "Split shipments",
+      body: (
+        <p>
+          If an order contains multiple products, products may arrive in
+          separate packages. Additional standard shipping will not be charged
+          unless disclosed before purchase.
+        </p>
+      ),
+    },
+    {
+      id: "contact",
+      title: "Contact",
+      body: (
+        <div className="grid justify-items-start gap-2.5 border border-line bg-chalk p-5">
+          <strong className="font-serif text-2xl font-normal text-ink">{brand}</strong>
+          {address && <address className="not-italic">{address}</address>}
+          {BUSINESS_INFO.email && (
+            <p>
+              Email:{" "}
+              <a href={`mailto:${BUSINESS_INFO.email}`} className={linkClass}>
+                {BUSINESS_INFO.email}
+              </a>
+            </p>
+          )}
+          {BUSINESS_INFO.phoneDisplay && phoneHref && (
+            <p>
+              Phone:{" "}
+              <a href={`tel:${phoneHref}`} className={linkClass}>
+                {BUSINESS_INFO.phoneDisplay}
+              </a>
+            </p>
+          )}
+          {schedule && <p>Support Hours: {schedule}</p>}
+          <Link
+            to="/contact"
+            className="group mt-1 inline-flex min-h-11 items-center gap-3 text-sm font-bold text-wine"
+          >
+            Contact our team
+            <ArrowUpRight
+              size={16}
+              aria-hidden="true"
+              className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+            />
           </Link>
         </div>
+      ),
+    },
+  ];
 
-        <header className="fbshipping-header">
-          <p className="fbshipping-eyebrow">Shipping information</p>
-          <h1>
-            On its way,
-            <span>with care.</span>
-          </h1>
+  /* reading progress + active section */
+  const articleRef = useRef(null);
+  const [progress, setProgress] = useState(0);
+  const [activeId, setActiveId] = useState(sections[0].id);
 
-          <div className="fbshipping-header-bottom">
-            <p>
-              This Shipping Policy applies to physical products purchased
-              from {brand} through{" "}
-              {BUSINESS_INFO.website ? (
-                <a href={BUSINESS_INFO.website}>
-                  {BUSINESS_INFO.website}
-                </a>
-              ) : (
-                "our website"
-              )}
-              .
-            </p>
+  useEffect(() => {
+    const onScroll = () => {
+      const element = articleRef.current;
+      if (!element) return;
+      const bounds = element.getBoundingClientRect();
+      const total = bounds.height - window.innerHeight * 0.6;
+      const value = total > 0 ? (-bounds.top + window.innerHeight * 0.3) / total : 0;
+      setProgress(Math.min(1, Math.max(0, value)));
+    };
 
-            <div className="fbshipping-date">
-              <span>Last updated</span>
-              <time dateTime="2026-10-03">October 3, 2026</time>
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!("IntersectionObserver" in window)) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.id.replace("policy-", ""));
+          }
+        });
+      },
+      { rootMargin: "-35% 0px -60% 0px" },
+    );
+
+    articleRef.current
+      ?.querySelectorAll("section[id^='policy-']")
+      .forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, []);
+
+  const facts = [
+    ["Shipping area", "Contiguous 48 U.S. states"],
+    ["Order processing", "1–2 business days"],
+    ["Shipping cost", "Free standard shipping"],
+  ];
+
+  return (
+    <div id="policy-top" className="min-w-0 overflow-x-clip bg-chalk pb-16 text-ink sm:pb-24">
+      {/* reading progress */}
+      <div
+        aria-hidden="true"
+        className="fixed inset-x-0 top-0 z-50 h-[3px] origin-left bg-wine transition-transform duration-150"
+        style={{ transform: `scaleX(${progress})` }}
+      />
+
+      {/* ============ Hero ============ */}
+      <header className="relative overflow-hidden bg-ink text-paper">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-32 -top-32 size-[520px] animate-[spin_60s_linear_infinite] rounded-full border border-dashed border-sand/15"
+        />
+        <div className="relative mx-auto max-w-[1450px] px-4 pb-14 pt-10 sm:px-8 sm:pb-20 sm:pt-14 lg:px-[clamp(40px,4vw,64px)]">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-paper/20 pb-4 text-[10px] font-bold uppercase tracking-[0.2em] sm:text-[11px]">
+            <span className="text-[#d9a9ae]">
+              {brand} / {POLICY_TITLE}
+            </span>
+            <Link
+              to="/track-order"
+              className="group inline-flex min-h-10 items-center gap-2 text-paper/70 transition-colors hover:text-paper"
+            >
+              Track your order
+              <ArrowUpRight
+                size={14}
+                aria-hidden="true"
+                className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+              />
+            </Link>
+          </div>
+
+          <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)] lg:items-end">
+            <div>
+              <p className="animate-rise text-[10px] font-bold uppercase tracking-[0.22em] text-paper/60">
+                Shipping information
+              </p>
+              <h1 className="mt-4 font-serif text-[clamp(52px,8vw,118px)] leading-[0.92] tracking-[-0.04em] perspective-distant">
+                <span className="block animate-fold-in [animation-delay:100ms]">
+                  On its way,
+                </span>
+                <em className="block animate-fold-in text-[#d9a9ae] [animation-delay:240ms] sm:ml-[8%]">
+                  with care.
+                </em>
+              </h1>
+            </div>
+
+            <div className="animate-rise [animation-delay:360ms]">
+              <p className="text-sm leading-relaxed text-paper/75">
+                This Shipping Policy applies to physical products purchased
+                from {brand} through{" "}
+                {BUSINESS_INFO.website ? (
+                  <a
+                    href={BUSINESS_INFO.website}
+                    className="break-all font-semibold text-paper underline decoration-[#d9a9ae]/60 underline-offset-4"
+                  >
+                    {BUSINESS_INFO.website}
+                  </a>
+                ) : (
+                  "our website"
+                )}
+                .
+              </p>
+              <p className="mt-5 inline-flex items-center gap-3 border border-paper/25 px-3 py-2 text-[11px]">
+                <span className="uppercase tracking-[0.16em] text-paper/60">Last updated</span>
+                <time dateTime={UPDATED_ISO} className="font-semibold">
+                  {BUSINESS_INFO.policyLastUpdated}
+                </time>
+              </p>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <section
-          className="fbshipping-overview"
-          aria-label="Shipping overview"
-        >
-          <dl>
-            <div>
-              <dt>Shipping area</dt>
-              <dd>Contiguous 48 U.S. states</dd>
-            </div>
-            <div>
-              <dt>Order processing</dt>
-              <dd>1–2 business days</dd>
-            </div>
-            <div>
-              <dt>Shipping cost</dt>
-              <dd>Free standard shipping</dd>
-            </div>
-          </dl>
-
-          <p>
-            Estimated total time from order acceptance to delivery is
-            generally <strong>4–9 business days</strong>. Delivery
-            estimates are not guaranteed.
-          </p>
-        </section>
-
-        <div className="fbshipping-layout">
-          <aside className="fbshipping-journey">
-            <p className="fbshipping-eyebrow">Order journey</p>
-            <h2>From checkout to your door.</h2>
-
-            <ol>
-              {JOURNEY.map((step, index) => {
-                const Icon = step.icon;
-
-                return (
-                  <li key={step.title}>
-                    <span className="fbshipping-step-icon">
-                      <Icon size={20} aria-hidden="true" />
-                    </span>
-                    <div>
-                      <span className="fbshipping-step-number">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <h3>{step.title}</h3>
-                      <p>{step.description}</p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-
-            <Link className="fbshipping-journey-link" to="/track-order">
-              Track your order
-              <ArrowRight size={17} aria-hidden="true" />
-            </Link>
-          </aside>
-
-          <article
-            className="fbshipping-document"
-            aria-label="Shipping policy"
-          >
-            <div className="fbshipping-document-label">
-              <p className="fbshipping-eyebrow">The delivery details</p>
-              <span>Shipping Policy</span>
-            </div>
-
-            <PolicySection id="area" number={1} title="Shipping area">
-              <p>
-                We currently ship to deliverable addresses within the
-                contiguous 48 United States.
-              </p>
-              <p>
-                We do not currently ship internationally or to Alaska,
-                Hawaii, U.S. territories, APO/FPO/DPO addresses, or P.O.
-                boxes.
-              </p>
-            </PolicySection>
-
-            <PolicySection id="cost" number={2} title="Shipping cost">
-              <p>
-                {brand} provides <strong>free standard shipping</strong>{" "}
-                on eligible orders within our published U.S. shipping area.
-              </p>
-              <p>
-                Customers will not be charged a standard shipping fee
-                unless a different charge is clearly disclosed before
-                completing the order.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              id="processing"
-              number={3}
-              title="Order processing"
+      {/* ============ Key facts — hang tags ============ */}
+      <section
+        aria-label="Shipping overview"
+        className="mx-auto -mt-8 max-w-[1450px] px-4 sm:px-8 lg:px-[clamp(40px,4vw,64px)]"
+      >
+        <div className="grid gap-3 sm:grid-cols-3">
+          {facts.map(([label, value], index) => (
+            <div
+              key={label}
+              style={{ animationDelay: `${300 + index * 120}ms` }}
+              className="animate-fold-in perspective-distant"
             >
-              <p>
-                Orders are normally processed within{" "}
-                <strong>1–2 business days</strong> after payment
-                authorization and order acceptance.
-              </p>
-              <p>
-                Business days are Monday through Friday and exclude
-                federal holidays. Orders submitted during weekends or
-                holidays begin processing on the following business day.
-              </p>
-              <p>
-                An order confirmation does not mean the order has
-                shipped. Customers will receive a separate shipping
-                confirmation when tracking becomes available.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              id="delivery"
-              number={4}
-              title="Estimated delivery"
-            >
-              <p>
-                After processing, standard delivery normally takes{" "}
-                <strong>3–7 business days</strong>.
-              </p>
-              <p>
-                The estimated total period from order acceptance to
-                delivery is generally <strong>4–9 business days</strong>.
-              </p>
-              <p>
-                Delivery estimates are not guarantees. Severe weather,
-                carrier disruptions, incorrect addresses, holidays,
-                emergencies, or other circumstances outside our control
-                may cause delays.
-              </p>
-              <p>
-                If we cannot ship within the promised period, we will
-                notify the customer and provide available options,
-                including cancellation and refund when required.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              id="method"
-              number={5}
-              title="Shipping method"
-            >
-              <p>
-                Orders are shipped using standard ground or parcel
-                delivery through a recognized third-party carrier. The
-                carrier used may depend on the destination, package
-                size, and operational availability.
-              </p>
-              <p>
-                Available tracking information will be included in the
-                shipping confirmation.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              id="accuracy"
-              number={6}
-              title="Address accuracy"
-            >
-              <p>
-                Customers are responsible for providing a complete and
-                accurate delivery address.
-              </p>
-              <p>
-                Contact <SupportLink /> immediately if an address needs
-                to be corrected. We cannot guarantee changes after an
-                order enters fulfillment or has shipped.
-              </p>
-              <p>
-                {brand} is not responsible for delays or failed delivery
-                caused by incorrect or incomplete information supplied
-                by the customer.
-              </p>
-            </PolicySection>
-
-            <PolicySection id="tracking" number={7} title="Tracking">
-              <p>
-                Tracking information may take up to 48 hours to update
-                after a label is created.
-              </p>
-              <p>
-                A carrier’s “delivered” scan does not always mean the
-                package was handed directly to the recipient. Customers
-                should check the delivery area, household members,
-                property staff, and carrier notices before reporting a
-                missing delivery.
-              </p>
-              <p>
-                You can also use your {brand} order number on our{" "}
-                <Link to="/track-order">Order Tracking page</Link>.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              id="lost"
-              number={8}
-              title="Lost packages"
-            >
-              <p>
-                If tracking does not update for an unusual period or a
-                package appears lost, contact{" "}
-                {BUSINESS_INFO.email ? (
-                  <>us at <SupportLink /></>
-                ) : (
-                  <SupportLink />
-                )}{" "}
-                with the order number.
-              </p>
-              <p>
-                We will review the shipment with the carrier and provide
-                an appropriate resolution based on the investigation
-                and applicable law.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              id="damaged"
-              number={9}
-              title="Damaged packages"
-            >
-              <p>
-                If a package arrives visibly damaged, photograph the
-                package and product and contact us within{" "}
-                <strong>48 hours of delivery</strong>.
-              </p>
-              <p>
-                Please retain the item, packaging, labels, and shipping
-                materials until we complete our review.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              id="undeliverable"
-              number={10}
-              title="Refused or undeliverable packages"
-            >
-              <p>
-                A shipment returned because of refusal, an incorrect
-                address, repeated failed delivery, or failure to collect
-                the package may be treated as a return.
-              </p>
-              <p>
-                Any additional reshipping charge will be disclosed and
-                approved before reshipment. If a refund is requested,
-                unavoidable carrier charges incurred because of an
-                incorrect address or refused delivery may be deducted
-                where legally permitted.
-              </p>
-            </PolicySection>
-
-            <PolicySection
-              id="split"
-              number={11}
-              title="Split shipments"
-            >
-              <p>
-                If an order contains multiple products, products may
-                arrive in separate packages. Additional standard
-                shipping will not be charged unless disclosed before
-                purchase.
-              </p>
-            </PolicySection>
-
-            <PolicySection id="contact" number={12} title="Contact">
-              <div className="fbshipping-contact">
-                <strong>{brand}</strong>
-
-                {address && <address>{address}</address>}
-
-                {BUSINESS_INFO.email && (
-                  <p>
-                    Email:{" "}
-                    <a href={`mailto:${BUSINESS_INFO.email}`}>
-                      {BUSINESS_INFO.email}
-                    </a>
-                  </p>
-                )}
-
-                {BUSINESS_INFO.phoneDisplay && phoneHref && (
-                  <p>
-                    Phone:{" "}
-                    <a href={`tel:${phoneHref}`}>
-                      {BUSINESS_INFO.phoneDisplay}
-                    </a>
-                  </p>
-                )}
-
-                {schedule && <p>Support Hours: {schedule}</p>}
-
-                <Link to="/contact">
-                  Contact our team
-                  <ArrowUpRight size={16} aria-hidden="true" />
-                </Link>
+              <div className="relative origin-top bg-paper p-6 shadow-[0_24px_40px_-28px_rgba(36,34,35,0.6)] transition-transform duration-700 ease-soft hover:rotate-x-[10deg]">
+                <span aria-hidden="true" className="pointer-events-none absolute inset-2 border border-dashed border-line" />
+                <span aria-hidden="true" className="absolute left-1/2 top-3.5 size-3 -translate-x-1/2 rounded-full border border-line bg-chalk" />
+                <p className="relative mt-3 text-[10px] font-bold uppercase tracking-[0.2em] text-wine">
+                  {label}
+                </p>
+                <p className="relative mt-2 font-serif text-[26px] leading-tight">{value}</p>
               </div>
-            </PolicySection>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-xs leading-relaxed text-muted">
+          Estimated total time from order acceptance to delivery is generally{" "}
+          <B>4–9 business days</B>. Delivery estimates are not guaranteed.
+        </p>
+      </section>
 
-            <footer className="fbshipping-document-footer">
-              <span>{brand} / Shipping Policy</span>
-              <a href="#fbshipping-top">
-                Back to top
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </a>
-            </footer>
-          </article>
+      {/* ============ Journey ============ */}
+      <section
+        aria-labelledby="journey-title"
+        className="mx-auto mt-14 max-w-[1450px] px-4 sm:mt-20 sm:px-8 lg:px-[clamp(40px,4vw,64px)]"
+      >
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <h2 id="journey-title" className="font-serif text-[clamp(32px,3.6vw,52px)] leading-none">
+            From checkout <em className="text-wine">to your door.</em>
+          </h2>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted">Order journey</p>
         </div>
 
-        <section
-          className="fbshipping-help"
-          aria-labelledby="fbshipping-help-title"
-        >
+        <ol className="relative mt-8 grid gap-6 md:grid-cols-4 md:gap-4">
+          <span aria-hidden="true" className="absolute left-0 right-0 top-6 hidden h-px bg-line md:block" />
+          {JOURNEY.map((step, index) => {
+            const Icon = step.icon;
+
+            return (
+              <li
+                key={step.title}
+                style={{ animationDelay: `${index * 140}ms` }}
+                className="group relative grid animate-rise grid-cols-[48px_minmax(0,1fr)] gap-4 md:block"
+              >
+                <span className="relative z-10 grid size-12 place-items-center rounded-full border border-wine bg-chalk text-wine transition-all duration-500 transform-3d group-hover:rotate-y-180 group-hover:bg-wine group-hover:text-paper">
+                  <Icon size={19} aria-hidden="true" />
+                </span>
+                <div className="md:mt-4">
+                  <span className="text-[10px] font-bold text-wine">{String(index + 1).padStart(2, "0")}</span>
+                  <h3 className="mt-1 font-serif text-xl">{step.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted">{step.description}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+
+      {/* ============ Document ============ */}
+      <div className="mx-auto mt-14 grid max-w-[1450px] items-start gap-8 px-4 sm:mt-20 sm:px-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-14 lg:px-[clamp(40px,4vw,64px)]">
+        {/* table of contents */}
+        <nav aria-label="Policy sections" className="lg:sticky lg:top-28">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wine">The delivery details</p>
+          <ol className="no-scrollbar -mx-4 mt-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:block lg:overflow-visible lg:border-l lg:border-line lg:px-0">
+            {sections.map((section, index) => {
+              const active = activeId === section.id;
+
+              return (
+                <li key={section.id} className="shrink-0">
+                  <a
+                    href={`#policy-${section.id}`}
+                    className={`relative flex min-h-10 items-center gap-3 whitespace-nowrap rounded-full border px-4 text-xs transition-all duration-300 lg:rounded-none lg:border-0 lg:py-2 lg:pl-5 lg:pr-0 lg:whitespace-normal ${
+                      active
+                        ? "border-wine bg-wine text-paper lg:bg-transparent lg:font-bold lg:text-wine"
+                        : "border-line bg-paper text-muted hover:text-ink lg:bg-transparent"
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`absolute -left-px top-0 hidden h-full w-0.5 origin-top bg-wine transition-transform duration-500 lg:block ${
+                        active ? "scale-y-100" : "scale-y-0"
+                      }`}
+                    />
+                    <span className="text-[10px] opacity-70">{String(index + 1).padStart(2, "0")}</span>
+                    {section.title}
+                  </a>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+
+        {/* sections */}
+        <article ref={articleRef} aria-label={POLICY_TITLE} className="min-w-0 border-t border-ink">
+          {sections.map((section, index) => (
+            <section
+              key={section.id}
+              id={`policy-${section.id}`}
+              aria-labelledby={`policy-title-${section.id}`}
+              className="grid scroll-mt-28 gap-3 border-b border-line py-8 sm:grid-cols-[64px_minmax(0,1fr)] sm:gap-6 sm:py-10"
+            >
+              <span
+                aria-hidden="true"
+                className={`font-serif text-4xl leading-none transition-colors duration-500 ${
+                  activeId === section.id ? "text-wine" : "text-line"
+                }`}
+              >
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <div className="min-w-0 space-y-4 text-[15px] leading-[1.85] text-muted [overflow-wrap:anywhere]">
+                <h2
+                  id={`policy-title-${section.id}`}
+                  className="font-serif text-[clamp(26px,2.6vw,36px)] leading-tight text-ink"
+                >
+                  {section.title}
+                </h2>
+                {section.body}
+              </div>
+            </section>
+          ))}
+
+          <footer className="flex flex-wrap items-center justify-between gap-3 py-5 text-[11px] uppercase tracking-[0.16em] text-muted">
+            <span>
+              {brand} / {POLICY_TITLE}
+            </span>
+            <a href="#policy-top" className="group inline-flex min-h-11 items-center gap-2 font-semibold text-ink hover:text-wine">
+              Back to top
+              <ArrowUpRight size={15} aria-hidden="true" className="transition-transform duration-300 group-hover:-translate-y-1" />
+            </a>
+          </footer>
+        </article>
+      </div>
+
+      {/* ============ Help ============ */}
+      <section
+        aria-labelledby="policy-help-title"
+        className="mx-auto mt-14 max-w-[1450px] px-4 sm:px-8 lg:px-[clamp(40px,4vw,64px)]"
+      >
+        <div className="flex flex-col items-start justify-between gap-6 bg-wine p-6 text-paper sm:flex-row sm:items-center sm:p-10">
           <div>
-            <p className="fbshipping-eyebrow">Already submitted an order?</p>
-            <h2 id="fbshipping-help-title">Follow its journey.</h2>
-            <p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#e6c4c7]">
+              Already submitted an order?
+            </p>
+            <h2 id="policy-help-title" className="mt-2 font-serif text-[clamp(32px,3.6vw,50px)] leading-tight">
+              Follow <em>its journey.</em>
+            </h2>
+            <p className="mt-2 text-sm text-paper/80">
               Check the latest available status using your order number.
             </p>
           </div>
 
-          <Link to="/track-order">
+          <Link
+            to="/track-order"
+            className="group inline-flex min-h-14 w-full shrink-0 items-center justify-between gap-6 bg-paper px-6 py-4 text-sm font-semibold text-ink transition-colors hover:bg-chalk sm:w-auto"
+          >
             Track order
-            <ArrowRight size={18} aria-hidden="true" />
+            <ArrowRight size={18} aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
-        </section>
-      </div>
-    </main>
+        </div>
+      </section>
+    </div>
   );
 };
-
-const styles = `
-  .fbshipping-page {
-    --ink: #173f36;
-    --cream: #f5f0e6;
-    --paper: #fffdf5;
-    --lime: #d7e5a5;
-    --accent: #a56e4f;
-    --muted: #516b62;
-    --line: rgba(23, 63, 54, .23);
-    min-height: 100vh;
-    padding-bottom: clamp(45px, 6vw, 85px);
-    background: var(--cream);
-    color: var(--ink);
-    font-family: 'Onest', ui-sans-serif, system-ui,
-      -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    line-height: 1.5;
-    scroll-margin-top: 110px;
-  }
-
-  .fbshipping-page *,
-  .fbshipping-page *::before,
-  .fbshipping-page *::after {
-    box-sizing: border-box;
-  }
-
-  .fbshipping-page a {
-    color: inherit;
-    text-underline-offset: 4px;
-  }
-
-  .fbshipping-page a:focus-visible {
-    outline: 3px solid var(--accent);
-    outline-offset: 5px;
-  }
-
-  .fbshipping-container {
-    width: min(100%, 1450px);
-    margin-inline: auto;
-    padding-inline: clamp(20px, 4.2vw, 70px);
-  }
-
-  .fbshipping-topline {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px 20px;
-    padding-block: 18px;
-    border-bottom: 1px solid var(--line);
-    font-size: 11px;
-  }
-
-  .fbshipping-topline a {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 44px;
-    font-weight: 600;
-    text-decoration: none;
-  }
-
-  .fbshipping-eyebrow {
-    margin: 0;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .13em;
-    text-transform: uppercase;
-  }
-
-  .fbshipping-header {
-    padding-block: clamp(40px, 6vw, 80px);
-    animation: fbshippingEnter .6s both;
-  }
-
-  .fbshipping-header h1 {
-    margin: 22px 0 35px;
-    font-size: clamp(57px, 8.5vw, 120px);
-    font-weight: 500;
-    line-height: .98;
-    letter-spacing: -.075em;
-  }
-
-  .fbshipping-header h1 span {
-    display: block;
-    margin-left: clamp(0px, 12vw, 175px);
-    color: var(--accent);
-  }
-
-  .fbshipping-header-bottom {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 30px;
-  }
-
-  .fbshipping-header-bottom > p {
-    max-width: 600px;
-    margin: 0;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.9;
-    overflow-wrap: anywhere;
-  }
-
-  .fbshipping-header-bottom > p a {
-    color: var(--ink);
-  }
-
-  .fbshipping-date {
-    flex-shrink: 0;
-    font-size: 11px;
-  }
-
-  .fbshipping-date > span {
-    display: block;
-    margin-bottom: 6px;
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fbshipping-overview {
-    margin-bottom: 45px;
-    border-block: 1px solid var(--ink);
-  }
-
-  .fbshipping-overview dl {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: 0;
-  }
-
-  .fbshipping-overview dl > div {
-    padding: 25px 30px;
-    border-right: 1px solid var(--line);
-  }
-
-  .fbshipping-overview dl > div:first-child {
-    padding-left: 0;
-  }
-
-  .fbshipping-overview dl > div:last-child {
-    border-right: 0;
-  }
-
-  .fbshipping-overview dt {
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fbshipping-overview dd {
-    margin: 10px 0 0;
-    font-size: clamp(19px, 2vw, 26px);
-    font-weight: 500;
-    line-height: 1.2;
-    letter-spacing: -.04em;
-  }
-
-  .fbshipping-overview > p {
-    margin: 0;
-    padding-block: 18px;
-    border-top: 1px solid var(--line);
-    color: var(--muted);
-    font-size: 11px;
-    line-height: 1.9;
-  }
-
-  .fbshipping-overview strong {
-    color: var(--ink);
-  }
-
-  .fbshipping-layout {
-    display: grid;
-    grid-template-columns: 310px minmax(0, 1fr);
-    align-items: start;
-    gap: clamp(25px, 4vw, 55px);
-  }
-
-  .fbshipping-journey {
-    min-width: 0;
-    padding: 28px;
-    border: 1px solid var(--ink);
-    background: var(--lime);
-  }
-
-  .fbshipping-journey > h2 {
-    margin: 18px 0 30px;
-    font-size: 36px;
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.055em;
-  }
-
-  .fbshipping-journey ol {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .fbshipping-journey li {
-    position: relative;
-    display: grid;
-    grid-template-columns: 42px minmax(0, 1fr);
-    gap: 15px;
-    padding-bottom: 28px;
-  }
-
-  .fbshipping-journey li:last-child {
-    padding-bottom: 0;
-  }
-
-  .fbshipping-journey li::before {
-    content: '';
-    position: absolute;
-    left: 20px;
-    top: 42px;
-    bottom: 0;
-    width: 1px;
-    background: var(--line);
-  }
-
-  .fbshipping-journey li:last-child::before {
-    display: none;
-  }
-
-  .fbshipping-step-icon {
-    display: grid;
-    place-items: center;
-    width: 42px;
-    height: 42px;
-    border: 1px solid var(--ink);
-    background: var(--lime);
-  }
-
-  .fbshipping-step-number {
-    color: var(--accent);
-    font-size: 9px;
-  }
-
-  .fbshipping-journey h3 {
-    margin: 5px 0 10px;
-    font-size: 18px;
-    font-weight: 500;
-    line-height: 1.2;
-    letter-spacing: -.03em;
-  }
-
-  .fbshipping-journey li p {
-    margin: 0;
-    font-size: 11px;
-    line-height: 1.9;
-  }
-
-  .fbshipping-journey-link {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    min-height: 48px;
-    margin-top: 30px;
-    border-top: 1px solid var(--ink);
-    font-size: 12px;
-    font-weight: 600;
-    text-decoration: none;
-  }
-
-  .fbshipping-document {
-    min-width: 0;
-    border: 1px solid var(--ink);
-    background: var(--paper);
-    animation: fbshippingEnter .6s .08s both;
-  }
-
-  .fbshipping-document-label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 23px 30px;
-    border-bottom: 1px solid var(--ink);
-  }
-
-  .fbshipping-document-label > span {
-    color: var(--muted);
-    font-size: 10px;
-  }
-
-  .fbshipping-section {
-    display: grid;
-    grid-template-columns: 28px minmax(0, 1fr);
-    gap: 18px;
-    padding: clamp(25px, 3.5vw, 45px);
-    border-bottom: 1px solid var(--line);
-    scroll-margin-top: 110px;
-  }
-
-  .fbshipping-section > div {
-    min-width: 0;
-  }
-
-  .fbshipping-section:target {
-    background: #f1f4e8;
-  }
-
-  .fbshipping-number {
-    padding-top: 6px;
-    color: var(--accent);
-    font-size: 11px;
-  }
-
-  .fbshipping-section h2 {
-    margin: 0 0 20px;
-    font-size: clamp(25px, 2.6vw, 34px);
-    font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: -.045em;
-  }
-
-  .fbshipping-section p,
-  .fbshipping-section address {
-    margin: 0 0 15px;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.9;
-    overflow-wrap: anywhere;
-  }
-
-  .fbshipping-section p:last-child {
-    margin-bottom: 0;
-  }
-
-  .fbshipping-section p strong,
-  .fbshipping-section p a {
-    color: var(--ink);
-    font-weight: 600;
-  }
-
-  .fbshipping-contact {
-    display: grid;
-    justify-items: start;
-    gap: 12px;
-  }
-
-  .fbshipping-contact > strong {
-    font-size: 18px;
-    font-weight: 600;
-  }
-
-  .fbshipping-contact p,
-  .fbshipping-contact address {
-    margin: 0;
-  }
-
-  .fbshipping-contact address {
-    font-style: normal;
-  }
-
-  .fbshipping-contact > a {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 44px;
-    font-size: 13px;
-    text-decoration: none;
-  }
-
-  .fbshipping-document-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px 20px;
-    padding: 20px 30px;
-    font-size: 10px;
-  }
-
-  .fbshipping-document-footer a {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 44px;
-    text-decoration: none;
-  }
-
-  .fbshipping-help {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 30px;
-    margin-top: 35px;
-    padding-block: 35px;
-    border-bottom: 1px solid var(--ink);
-  }
-
-  .fbshipping-help h2 {
-    margin: 15px 0;
-    font-size: clamp(32px, 3.8vw, 50px);
-    font-weight: 500;
-    line-height: 1.1;
-    letter-spacing: -.055em;
-  }
-
-  .fbshipping-help div > p:last-child {
-    margin: 0;
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.8;
-  }
-
-  .fbshipping-help > a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-    gap: 25px;
-    min-height: 54px;
-    padding: 15px 22px;
-    background: var(--ink);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: transform .2s ease;
-  }
-
-  .fbshipping-help > a:hover {
-    transform: translateY(-2px);
-  }
-
-  @keyframes fbshippingEnter {
-    from { opacity: 0; transform: translateY(18px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 1050px) {
-    .fbshipping-layout {
-      grid-template-columns: 270px minmax(0, 1fr);
-      gap: 25px;
-    }
-
-    .fbshipping-journey {
-      padding: 23px;
-    }
-
-    .fbshipping-section {
-      grid-template-columns: 22px minmax(0, 1fr);
-      gap: 12px;
-      padding: 30px 24px;
-    }
-  }
-
-  @media (max-width: 800px) {
-    .fbshipping-header-bottom {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .fbshipping-layout {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 28px;
-    }
-
-    .fbshipping-journey ol {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 25px;
-    }
-
-    .fbshipping-journey li {
-      padding-bottom: 0;
-    }
-
-    .fbshipping-journey li::before {
-      display: none;
-    }
-
-    .fbshipping-help {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .fbshipping-help > a {
-      width: 100%;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .fbshipping-header h1 {
-      font-size: clamp(52px, 15vw, 75px);
-    }
-
-    .fbshipping-header h1 span {
-      margin-left: 0;
-    }
-
-    .fbshipping-overview dl {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .fbshipping-overview dl > div,
-    .fbshipping-overview dl > div:first-child {
-      padding: 20px 0;
-      border-right: 0;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .fbshipping-overview dl > div:last-child {
-      border-bottom: 0;
-    }
-
-    .fbshipping-journey ol {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
-    .fbshipping-section {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 10px;
-      padding: 27px 20px;
-    }
-
-    .fbshipping-number {
-      padding-top: 0;
-    }
-
-    .fbshipping-section h2 {
-      font-size: 28px;
-    }
-
-    .fbshipping-section p,
-    .fbshipping-section address {
-      font-size: 13px;
-    }
-
-    .fbshipping-document-label,
-    .fbshipping-document-footer {
-      padding-inline: 20px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .fbshipping-page *,
-    .fbshipping-page *::before,
-    .fbshipping-page *::after {
-      animation: none !important;
-      transition: none !important;
-    }
-  }
-`;
 
 export default ShippingPolicy;
