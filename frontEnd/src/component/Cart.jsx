@@ -434,12 +434,7 @@ const Cart = () => {
                       </div>
                     </div>
 
-                    {/* barcode-style flourish */}
-                    <div
-                      aria-hidden="true"
-                      className="mx-auto mt-6 h-9 w-44 bg-[repeating-linear-gradient(90deg,var(--color-ink)_0_2px,transparent_2px_4px,var(--color-ink)_4px_5px,transparent_5px_8px)] opacity-80"
-                    />
-                    <p className="mt-2 text-center text-[9px] uppercase tracking-[0.3em] text-muted">
+                    <p className="mt-6 text-center text-[9px] uppercase tracking-[0.3em] text-muted">
                       Chosen with a little intention
                     </p>
                   </div>
